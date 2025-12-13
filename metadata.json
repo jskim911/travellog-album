@@ -1,0 +1,5 @@
+{
+  "name": "TravelLog Album",
+  "description": "A modern travel album application using Firebase and React.",
+  "requestFramePermissions": []
+}

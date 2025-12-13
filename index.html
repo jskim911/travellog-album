@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TravelLog Album</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+      }
+      #error-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        z-index: 9999;
+        padding: 2rem;
+        color: #ef4444;
+        font-family: monospace;
+        white-space: pre-wrap;
+        overflow: auto;
+        border-bottom: 4px solid #ef4444;
+      }
+    </style>
+  <script>
+    // Global Error Handler to show runtime errors on screen
+    window.addEventListener('error', function(event) {
+      const errorBox = document.getElementById('error-overlay');
+      if (errorBox) {
+        errorBox.style.display = 'block';
+        errorBox.innerHTML += `<div><strong>Error:</strong> ${event.message}</div>`;
+        console.error(event.error);
+      }
+    });
+    window.addEventListener('unhandledrejection', function(event) {
+      const errorBox = document.getElementById('error-overlay');
+      if (errorBox) {
+        errorBox.style.display = 'block';
+        errorBox.innerHTML += `<div><strong>Promise Error:</strong> ${event.reason}</div>`;
+        console.error(event.reason);
+      }
+    });
+  </script>
+
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="error-overlay"></div>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
