@@ -41,7 +41,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
+      const filesArray: File[] = Array.from(e.target.files);
       setSelectedFiles((prev) => [...prev, ...filesArray]);
       setUploadStatus('idle');
 
