@@ -6,7 +6,8 @@ import { deleteObject, ref } from 'firebase/storage';
 import { UploadSection } from './components/UploadSection';
 import { PhotoCard } from './components/PhotoCard';
 import { GallerySection } from './components/GallerySection';
-import { X, CheckCircle2, Trash2 } from 'lucide-react';
+import { StoryboardCreator } from './components/StoryboardCreator';
+import { X, CheckCircle2, Trash2, BookOpen } from 'lucide-react';
 import { LoginModal } from './components/LoginModal';
 import { SignupModal } from './components/SignupModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -20,6 +21,7 @@ const App: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
 
   // User status and admin check
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
@@ -344,6 +346,13 @@ const App: React.FC = () => {
                   {selectedAlbumIds.size > 0 && (
                     <>
                       <button
+                        onClick={() => setIsStoryboardOpen(true)}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
+                      >
+                        <BookOpen size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">스토리보드</span>
+                      </button>
+                      <button
                         onClick={handleDownloadSelected}
                         className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
                       >
@@ -374,8 +383,8 @@ const App: React.FC = () => {
                     <button
                       onClick={() => setViewMode('all')}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'all'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                       title="전체 보기"
                     >
@@ -385,8 +394,8 @@ const App: React.FC = () => {
                     <button
                       onClick={() => setViewMode('by-date')}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-date'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                       title="날짜별"
                     >
@@ -396,8 +405,8 @@ const App: React.FC = () => {
                     <button
                       onClick={() => setViewMode('by-location')}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-location'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                       title="장소별"
                     >
@@ -508,7 +517,15 @@ const App: React.FC = () => {
           currentUserUid={user?.uid || ''}
         />
       )}
-    </div >
+
+      {isStoryboardOpen && (
+        <StoryboardCreator
+          isOpen={isStoryboardOpen}
+          onClose={() => setIsStoryboardOpen(false)}
+          selectedAlbums={albums.filter(a => selectedAlbumIds.has(a.id))}
+        />
+      )}
+    </div>
   );
 };
 
