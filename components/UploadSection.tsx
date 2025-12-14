@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, FileImage, CheckCircle2, Sparkles, LogIn, MapPin, Camera, PlusCircle } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { storage, db } from '../firebase';
 import { useAuth } from '../src/hooks/useAuth';
+import { AISuggestions } from './AISuggestions';
+import { analyzePhotoAndGenerateCaption, generateCaptionSuggestions } from '../src/utils/gemini';
+import imageCompression from 'browser-image-compression';
 
 interface UploadSectionProps {
   onOpenLoginModal: () => void;
@@ -30,11 +33,36 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
   const [progressMessage, setProgressMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // AI Suggestions State
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [selectedCaption, setSelectedCaption] = useState('');
+  const [customCaption, setCustomCaption] = useState('');
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       setSelectedFiles((prev) => [...prev, ...filesArray]);
       setUploadStatus('idle');
+
+      // AI 분석: 첫 번째 파일에 대해 자동으로 소감 문구 생성
+      if (filesArray.length > 0 && aiSuggestions.length === 0) {
+        await generateAISuggestions(filesArray[0]);
+      }
+    }
+  };
+
+  // AI 소감 문구 생성
+  const generateAISuggestions = async (file: File) => {
+    setLoadingAI(true);
+    try {
+      const suggestions = await generateCaptionSuggestions(file, locationInput);
+      setAiSuggestions(suggestions);
+    } catch (error) {
+      console.error('AI 추천 생성 실패:', error);
+      setAiSuggestions([]);
+    } finally {
+      setLoadingAI(false);
     }
   };
 
@@ -48,7 +76,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files) {
@@ -56,6 +84,11 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
       const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
       setSelectedFiles((prev) => [...prev, ...imageFiles]);
       setUploadStatus('idle');
+
+      // AI 분석: 첫 번째 파일에 대해 자동으로 소감 문구 생성
+      if (imageFiles.length > 0 && aiSuggestions.length === 0) {
+        await generateAISuggestions(imageFiles[0]);
+      }
     }
   };
 
@@ -69,26 +102,93 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
     setUploadStatus('uploading');
 
     try {
-      let fileIndex = 0;
-      for (const file of selectedFiles) {
-        fileIndex++;
+      const finalCaption = selectedCaption || customCaption;
 
-        // Upload to Firebase Storage
-        setProgressMessage(`'${file.name}' 업로드 중... (${fileIndex}/${selectedFiles.length})`);
-        const storageRef = ref(storage, `photos/${user.uid}/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
+      for (let fileIndex = 0; fileIndex < selectedFiles.length; fileIndex++) {
+        const file = selectedFiles[fileIndex];
+
+        // AI 분석 (첫 번째 파일만 또는 각 파일마다)
+        setProgressMessage(`'${file.name}' AI 분석 중... (${fileIndex + 1}/${selectedFiles.length})`);
+        let aiTitle = file.name.replace(/\.[^/.]+$/, "");
+        let aiRating = 4;
+
+        try {
+          const aiResult = await analyzePhotoAndGenerateCaption(file);
+          aiTitle = aiResult.title;
+          aiRating = aiResult.rating;
+        } catch (error) {
+          console.error('AI 분석 실패:', error);
+        }
+
+        // 이미지 압축
+        setProgressMessage(`'${file.name}' 압축 중... (${fileIndex + 1}/${selectedFiles.length})`);
+        const compressionOptions = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true
+        };
+
+        const compressedFile = await imageCompression(file, compressionOptions);
+
+        // 썸네일 생성
+        const thumbnailOptions = {
+          maxSizeMB: 0.2,
+          maxWidthOrHeight: 400,
+          useWebWorker: true
+        };
+        const thumbnailFile = await imageCompression(file, thumbnailOptions);
+
+        // 원본 업로드
+        setProgressMessage(`'${file.name}' 업로드 중... (${fileIndex + 1}/${selectedFiles.length})`);
+        const timestamp = Date.now();
+        const storageRef = ref(storage, `photos/${user.uid}/${timestamp}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, compressedFile);
         const downloadUrl = await getDownloadURL(snapshot.ref);
 
-        // Save metadata to Firestore
-        setProgressMessage(`'${file.name}' 저장 중...`);
+        // 썸네일 업로드
+        const thumbnailRef = ref(storage, `thumbnails/${user.uid}/${timestamp}_thumb_${file.name}`);
+        const thumbnailSnapshot = await uploadBytes(thumbnailRef, thumbnailFile);
+        const thumbnailUrl = await getDownloadURL(thumbnailSnapshot.ref);
+
+        // 이미지 메타데이터 추출
+        const img = new Image();
+        const imgLoadPromise: Promise<{ width: number, height: number }> = new Promise((resolve) => {
+          img.onload = () => {
+            resolve({ width: img.width, height: img.height });
+          };
+          img.src = URL.createObjectURL(file);
+        });
+        const { width, height } = await imgLoadPromise;
+        URL.revokeObjectURL(img.src);
+
+        // Firestore에 저장
+        setProgressMessage(`'${file.name}' 저장 중... (${fileIndex + 1}/${selectedFiles.length})`);
+
+        // 만료일 계산 (30일 후)
+        const expiresAt = Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+
         await addDoc(collection(db, 'photos'), {
           userId: user.uid,
-          photoUrl: downloadUrl,
-          title: file.name.replace(/\.[^/.]+$/, ""), // Use filename without extension as title
-          caption: "",
-          rating: 0,
-          fileName: file.name,
+          url: downloadUrl,
+          thumbnailUrl: thumbnailUrl,
           location: locationInput.trim() || "기타",
+          caption: finalCaption || "",
+          aiSuggestions: aiSuggestions.length > 0 ? aiSuggestions : undefined,
+          title: aiTitle,
+          rating: aiRating,
+          date: serverTimestamp(),
+          uploadedAt: serverTimestamp(),
+          metadata: {
+            originalName: file.name,
+            size: file.size,
+            mimeType: file.type,
+            width: width,
+            height: height
+          },
+          expiresAt: expiresAt,
+          // Legacy fields for backward compatibility
+          photoUrl: downloadUrl,
+          fileName: file.name,
           createdAt: serverTimestamp(),
           photoCount: 1
         });
@@ -102,14 +202,16 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
         setUploadStatus('idle');
         setProgressMessage('');
         setLocationInput('');
+        setAiSuggestions([]);
+        setSelectedCaption('');
+        setCustomCaption('');
       }, 2000);
 
     } catch (error: any) {
       console.error("Upload failed", error);
-      // Detailed error message for better debugging
       const errorMessage = error.code ? `Firebase Error: ${error.code}` : (error.message || '업로드 중 알 수 없는 오류가 발생했습니다.');
       setProgressMessage(`오류 발생: ${errorMessage}`);
-      setUploadStatus('idle'); // Allow retry
+      setUploadStatus('idle');
     }
   };
 
@@ -296,6 +398,47 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
                   />
                   <MapPin size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
+
+                {/* AI Suggestions */}
+                {(aiSuggestions.length > 0 || loadingAI) && (
+                  <AISuggestions
+                    suggestions={aiSuggestions}
+                    onSelect={(caption) => {
+                      setSelectedCaption(caption);
+                      setCustomCaption('');
+                    }}
+                    onRegenerate={() => {
+                      if (selectedFiles.length > 0) {
+                        generateAISuggestions(selectedFiles[0]);
+                      }
+                    }}
+                    loading={loadingAI}
+                    selectedCaption={selectedCaption}
+                  />
+                )}
+
+                {/* Custom Caption Input */}
+                {selectedFiles.length > 0 && (
+                  <div className="relative">
+                    <textarea
+                      value={customCaption}
+                      onChange={(e) => {
+                        setCustomCaption(e.target.value);
+                        if (e.target.value) {
+                          setSelectedCaption('');
+                        }
+                      }}
+                      placeholder={selectedCaption || "또는 직접 소감을 입력하세요..."}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all bg-white font-medium resize-none"
+                      rows={3}
+                    />
+                    {customCaption && (
+                      <div className="absolute top-2 right-2 text-xs text-slate-400">
+                        {customCaption.length}자
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Progress Message */}
                 {progressMessage && (
