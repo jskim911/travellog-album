@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc } from 'firebase/firestore';
+import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { deleteObject, ref } from 'firebase/storage';
 import { UploadSection } from './components/UploadSection';
 import { AlbumItem } from './components/AlbumItem';
-import { VideoCreatorModal } from './components/VideoCreatorModal';
-import { Video, X, CheckCircle2, Film, Trash2 } from 'lucide-react';
+import { X, CheckCircle2, Trash2 } from 'lucide-react';
 import { LoginModal } from './components/LoginModal';
-import { Album } from './types';
+import { SignupModal } from './components/SignupModal';
+import { AdminPanel } from './components/AdminPanel';
+import { Album, User, UserStatus } from './types';
 import { useAuth } from './src/hooks/useAuth';
 
 const App: React.FC = () => {
@@ -16,11 +17,16 @@ const App: React.FC = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
 
-  // Video Creation State
+  // User status and admin check
+  const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<string>>(new Set());
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('전체');
 
@@ -80,9 +86,39 @@ const App: React.FC = () => {
     }
   };
 
-  // Fetch data from Firestore
+  // Check user status and admin privileges
   useEffect(() => {
     if (!user) {
+      setUserStatus(null);
+      setIsAdmin(false);
+      return;
+    }
+
+    const checkUserStatus = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as User;
+          setUserStatus(userData.status);
+
+          // Check if user is admin (you can customize this logic)
+          // For now, we'll check if email is in admin list
+          const adminEmails = ['admin@example.com', 'your-admin-email@gmail.com'];
+          setIsAdmin(adminEmails.includes(user.email || ''));
+        } else {
+          setUserStatus(null);
+        }
+      } catch (error) {
+        console.error('Error checking user status:', error);
+      }
+    };
+
+    checkUserStatus();
+  }, [user]);
+
+  // Fetch data from Firestore
+  useEffect(() => {
+    if (!user || userStatus !== 'approved') {
       setAlbums([]);
       setLoading(false);
       return;
@@ -120,10 +156,9 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userStatus]);
 
-  // Helper to get selected album objects
-  const selectedAlbums = albums.filter(a => selectedAlbumIds.has(a.id));
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 relative">
@@ -154,6 +189,17 @@ const App: React.FC = () => {
                 <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />
               ) : user ? (
                 <>
+                  {/* Admin Button */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsAdminPanelOpen(true)}
+                      className="p-2 sm:p-2.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-all"
+                      title="관리자 패널"
+                    >
+                      <Shield size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                  )}
+
                   {/* User Profile */}
                   <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm hover:shadow-md transition-all">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-violet-400 to-blue-400 overflow-hidden ring-2 ring-white shadow-md">
@@ -165,7 +211,9 @@ const App: React.FC = () => {
                     </div>
                     <div className="hidden sm:block">
                       <p className="text-sm font-bold text-slate-800 leading-none">{user.displayName}</p>
-                      <p className="text-[10px] text-slate-500 leading-none mt-0.5">프리미엄</p>
+                      <p className="text-[10px] text-slate-500 leading-none mt-0.5">
+                        {userStatus === 'approved' ? '승인됨' : userStatus === 'pending' ? '승인 대기' : '프리미엄'}
+                      </p>
                     </div>
                   </div>
 
@@ -179,12 +227,20 @@ const App: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className="px-5 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white text-sm font-bold rounded-full hover:shadow-lg hover:shadow-violet-200 transition-all transform hover:-translate-y-0.5"
-                >
-                  로그인
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsSignupModalOpen(true)}
+                    className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white text-violet-600 text-sm font-bold rounded-full border-2 border-violet-600 hover:bg-violet-50 transition-all"
+                  >
+                    회원가입
+                  </button>
+                  <button
+                    onClick={() => setIsLoginModalOpen(true)}
+                    className="px-5 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-violet-600 to-blue-600 text-white text-sm font-bold rounded-full hover:shadow-lg hover:shadow-violet-200 transition-all transform hover:-translate-y-0.5"
+                  >
+                    로그인
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -193,8 +249,25 @@ const App: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
 
-        {/* Compact Upload Button - Only show when logged in */}
-        {user && (
+        {/* Pending Approval Banner */}
+        {user && userStatus === 'pending' && (
+          <div className="max-w-4xl mx-auto mb-8 p-6 bg-yellow-50 border-2 border-yellow-200 rounded-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+                <Clock size={24} className="text-yellow-700" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-yellow-900">승인 대기 중</h3>
+                <p className="text-yellow-700 mt-1">
+                  관리자가 가입을 승인하면 모든 기능을 사용하실 수 있습니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Compact Upload Button - Only show when approved */}
+        {user && userStatus === 'approved' && (
           <div className="fixed bottom-6 right-6 z-40">
             <button
               onClick={() => document.getElementById('file-upload-input')?.click()}
@@ -211,10 +284,8 @@ const App: React.FC = () => {
               accept="image/*"
               className="hidden"
               onChange={(e) => {
-                // Handle file upload here - we'll integrate with UploadSection logic
                 const files = e.target.files;
                 if (files) {
-                  // Trigger upload modal or process
                   console.log('Files selected:', files);
                 }
               }}
@@ -223,12 +294,14 @@ const App: React.FC = () => {
         )}
 
         {/* Upload Section - Compact Version */}
-        <section className="max-w-4xl mx-auto mb-8 sm:mb-12">
-          <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} />
-        </section>
+        {userStatus === 'approved' && (
+          <section className="max-w-4xl mx-auto mb-8 sm:mb-12">
+            <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} />
+          </section>
+        )}
 
         {/* List Header & Controls */}
-        {user && (
+        {user && userStatus === 'approved' && (
           <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-6 sm:mb-8 mt-8 sm:mt-16 px-2 border-b border-zinc-200 pb-3 sm:pb-4 gap-3 sm:gap-0">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">Gallery</h2>
@@ -242,22 +315,13 @@ const App: React.FC = () => {
                     {selectedAlbumIds.size}개 선택됨
                   </span>
                   {selectedAlbumIds.size > 0 && (
-                    <>
-                      <button
-                        onClick={handleDeleteSelected}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                      >
-                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">삭제</span>
-                      </button>
-                      <button
-                        onClick={() => setIsVideoModalOpen(true)}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs sm:text-sm font-bold rounded-full shadow-lg transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                      >
-                        <Film size={14} className="sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline">비디오</span>
-                      </button>
-                    </>
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
+                    >
+                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">삭제</span>
+                    </button>
                   )}
                   <button
                     onClick={toggleSelectionMode}
@@ -286,7 +350,7 @@ const App: React.FC = () => {
         )}
 
         {/* Location Tabs */}
-        {user && albums.length > 0 && (
+        {user && userStatus === 'approved' && albums.length > 0 && (
           <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 px-1 scrollbar-hide">
             {['전체', ...Array.from(new Set(albums.map(a => a.location))).sort()].map((loc) => (
               <button
@@ -355,11 +419,22 @@ const App: React.FC = () => {
         onClose={() => setIsLoginModalOpen(false)}
       />
 
-      <VideoCreatorModal
-        isOpen={isVideoModalOpen}
-        onClose={() => setIsVideoModalOpen(false)}
-        selectedAlbums={selectedAlbums}
+      <SignupModal
+        isOpen={isSignupModalOpen}
+        onClose={() => setIsSignupModalOpen(false)}
+        onSwitchToLogin={() => {
+          setIsSignupModalOpen(false);
+          setIsLoginModalOpen(true);
+        }}
       />
+
+      {isAdmin && (
+        <AdminPanel
+          isOpen={isAdminPanelOpen}
+          onClose={() => setIsAdminPanelOpen(false)}
+          currentUserUid={user?.uid || ''}
+        />
+      )}
     </div >
   );
 };

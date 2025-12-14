@@ -36,7 +36,7 @@ export interface AIAnalysisResult {
  */
 export const analyzePhotoAndGenerateCaption = async (file: File): Promise<AIAnalysisResult> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     const base64Data = await fileToGenerativePart(file);
 
     const prompt = `
@@ -92,5 +92,148 @@ export const analyzePhotoAndGenerateCaption = async (file: File): Promise<AIAnal
       impression: "",
       rating: 3
     };
+  }
+};
+
+/**
+ * Generates 10 caption suggestions for a travel photo
+ */
+export const generateCaptionSuggestions = async (
+  file: File,
+  location?: string
+): Promise<string[]> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const base64Data = await fileToGenerativePart(file);
+
+    const prompt = `
+      이 여행 사진을 분석하고, 여행자가 사용할 수 있는 감성적인 소감 문구를 정확히 10개 추천해주세요.
+      ${location ? `장소: ${location}` : ''}
+      
+      각 문구는:
+      - 20-50자 이내
+      - 감성적이고 개인적인 느낌
+      - 다양한 톤 (행복, 평화, 설렘, 감동, 그리움, 여유 등)
+      - 구체적이고 진솔한 표현
+      
+      JSON 배열 형태로만 반환해주세요:
+      ["문구1", "문구2", "문구3", "문구4", "문구5", "문구6", "문구7", "문구8", "문구9", "문구10"]
+    `;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: file.type,
+          data: base64Data
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const text = response.text();
+    const cleanText = text.replace(/```json|```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      if (Array.isArray(parsed) && parsed.length === 10) {
+        return parsed;
+      }
+      // If not exactly 10, return fallback
+      return getFallbackCaptions();
+    } catch (e) {
+      console.error("JSON Parse Error for captions:", e);
+      return getFallbackCaptions();
+    }
+  } catch (error) {
+    console.error("Gemini API Error (captions):", error);
+    return getFallbackCaptions();
+  }
+};
+
+/**
+ * Fallback captions when AI fails
+ */
+const getFallbackCaptions = (): string[] => {
+  return [
+    "이 순간이 영원하길",
+    "다시 돌아오고 싶은 곳",
+    "마음이 편안해지는 풍경",
+    "잊지 못할 추억",
+    "여행의 설렘이 가득한 순간",
+    "시간이 멈춘 듯한 평화",
+    "새로운 발견의 기쁨",
+    "함께여서 더 특별한 순간",
+    "일상을 벗어난 자유",
+    "소중한 기억 하나 더"
+  ];
+};
+
+/**
+ * Extracts receipt data using OCR
+ */
+export interface ReceiptData {
+  merchantName: string;
+  date: string;
+  items: Array<{ name: string; price: number }>;
+  total: number;
+  currency: string;
+}
+
+export const extractReceiptData = async (file: File): Promise<ReceiptData> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+    const base64Data = await fileToGenerativePart(file);
+
+    const prompt = `
+      이 영수증 이미지에서 다음 정보를 추출해주세요:
+      - 상호명 (가게 이름)
+      - 날짜 (YYYY-MM-DD 형식)
+      - 항목별 내역 (상품명과 가격)
+      - 총 금액
+      - 통화 (KRW, USD 등)
+      
+      JSON 형태로만 반환해주세요:
+      {
+        "merchantName": "상호명",
+        "date": "YYYY-MM-DD",
+        "items": [{"name": "항목1", "price": 10000}, {"name": "항목2", "price": 5000}],
+        "total": 15000,
+        "currency": "KRW"
+      }
+      
+      만약 정보를 찾을 수 없으면 빈 문자열이나 0을 사용하세요.
+    `;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: file.type,
+          data: base64Data
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const text = response.text();
+    const cleanText = text.replace(/```json|```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      return {
+        merchantName: parsed.merchantName || "알 수 없음",
+        date: parsed.date || new Date().toISOString().split('T')[0],
+        items: parsed.items || [],
+        total: parsed.total || 0,
+        currency: parsed.currency || "KRW"
+      };
+    } catch (e) {
+      console.error("JSON Parse Error for receipt:", e);
+      throw new Error("영수증 데이터를 추출할 수 없습니다.");
+    }
+  } catch (error) {
+    console.error("Gemini API Error (receipt):", error);
+    throw new Error("영수증 분석 중 오류가 발생했습니다.");
   }
 };
