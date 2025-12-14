@@ -86,7 +86,8 @@ export interface Itinerary {
   expiresAt: Date;
 }
 
-export type ExpenseCategory = 'food' | 'transport' | 'accommodation' | 'activity' | 'shopping' | 'other';
+export type ExpenseCategory = 'food' | 'transport' | 'accommodation' | 'shopping' | 'activity' | 'flight' | 'other';
+export type Currency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'CNY';
 
 export interface Expense {
   id: string;
