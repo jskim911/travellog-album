@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock } from 'lucide-react';
+import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { deleteObject, ref } from 'firebase/storage';
 import { UploadSection } from './components/UploadSection';
-import { AlbumItem } from './components/AlbumItem';
+import { PhotoCard } from './components/PhotoCard';
+import { GallerySection } from './components/GallerySection';
 import { X, CheckCircle2, Trash2 } from 'lucide-react';
 import { LoginModal } from './components/LoginModal';
 import { SignupModal } from './components/SignupModal';
@@ -28,6 +29,8 @@ const App: React.FC = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<string>>(new Set());
 
+  // View Mode: 'all' | 'by-date' | 'by-location'
+  const [viewMode, setViewMode] = useState<'all' | 'by-date' | 'by-location'>('all');
   const [activeTab, setActiveTab] = useState('전체');
 
   const filteredAlbums = activeTab === '전체'
@@ -64,6 +67,30 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Error removing document: ", error);
       alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  // Download selected photos
+  const handleDownloadSelected = async () => {
+    if (selectedAlbumIds.size === 0) return;
+
+    const selectedAlbums = albums.filter(a => selectedAlbumIds.has(a.id));
+
+    for (const album of selectedAlbums) {
+      try {
+        const response = await fetch(album.coverUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${album.title || 'photo'}_${album.id}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download failed:', error);
+      }
     }
   };
 
@@ -315,13 +342,22 @@ const App: React.FC = () => {
                     {selectedAlbumIds.size}개 선택됨
                   </span>
                   {selectedAlbumIds.size > 0 && (
-                    <button
-                      onClick={handleDeleteSelected}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                    >
-                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">삭제</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={handleDownloadSelected}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
+                      >
+                        <Download size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">다운로드</span>
+                      </button>
+                      <button
+                        onClick={handleDeleteSelected}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
+                      >
+                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">삭제</span>
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={toggleSelectionMode}
@@ -401,7 +437,7 @@ const App: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
             {filteredAlbums.map((album) => (
-              <AlbumItem
+              <PhotoCard
                 key={album.id}
                 album={album}
                 onDelete={handleDeleteAlbum}
