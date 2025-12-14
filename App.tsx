@@ -8,7 +8,8 @@ import { PhotoCard } from './components/PhotoCard';
 import { GallerySection } from './components/GallerySection';
 import { StoryboardCreator } from './components/StoryboardCreator';
 import { RoadmapPage } from './components/Roadmap/RoadmapPage';
-import { X, CheckCircle2, Trash2, BookOpen, Map, Image as ImageIcon } from 'lucide-react';
+import { EmojiGeneratorModal } from './components/Emoji/EmojiGeneratorModal';
+import { X, CheckCircle2, Trash2, BookOpen, Map, Image as ImageIcon, Smile } from 'lucide-react';
 import { LoginModal } from './components/LoginModal';
 import { SignupModal } from './components/SignupModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
+  const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
 
   // User status and admin check
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
@@ -400,6 +402,13 @@ const App: React.FC = () => {
                             <span className="hidden xs:inline">스토리보드</span>
                           </button>
                           <button
+                            onClick={() => setIsEmojiModalOpen(true)}
+                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
+                          >
+                            <Smile size={14} className="sm:w-4 sm:h-4" />
+                            <span className="hidden xs:inline">이모지</span>
+                          </button>
+                          <button
                             onClick={handleDownloadSelected}
                             className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
                           >
@@ -575,6 +584,16 @@ const App: React.FC = () => {
             isOpen={isStoryboardOpen}
             onClose={() => setIsStoryboardOpen(false)}
             selectedAlbums={albums.filter(a => selectedAlbumIds.has(a.id))}
+          />
+        )
+      }
+
+      {
+        isEmojiModalOpen && (
+          <EmojiGeneratorModal
+            isOpen={isEmojiModalOpen}
+            onClose={() => setIsEmojiModalOpen(false)}
+            photos={albums.filter(a => selectedAlbumIds.has(a.id))}
           />
         )
       }
