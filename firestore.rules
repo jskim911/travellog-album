@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/adminSettings/config) &&
+             get(/databases/$(database)/documents/adminSettings/config).data.adminEmails.hasAny([request.auth.token.email]);
+    }
+    
+    function isApproved() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'approved';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can create a user document (for signup)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Users can read their own document
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Only admins can update user status (approve/reject)
+      allow update: if isAdmin() || 
+                      (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'approvedBy', 'approvedAt']));
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+    
+    // Photos collection
+    match /photos/{photoId} {
+      // Approved users can create photos
+      allow create: if isApproved() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can read their own photos
+      allow read: if isApproved() && resource.data.userId == request.auth.uid;
+      
+      // Users can update their own photos
+      allow update: if isApproved() && isOwner(resource.data.userId);
+      
+      // Users can delete their own photos
+      allow delete: if isApproved() && isOwner(resource.data.userId);
+    }
+    
+    // Itineraries collection
+    match /itineraries/{itineraryId} {
+      allow create: if isApproved() && request.resource.data.userId == request.auth.uid;
+      allow read: if isApproved() && resource.data.userId == request.auth.uid;
+      allow update: if isApproved() && isOwner(resource.data.userId);
+      allow delete: if isApproved() && isOwner(resource.data.userId);
+    }
+    
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow create: if isApproved() && request.resource.data.userId == request.auth.uid;
+      allow read: if isApproved() && resource.data.userId == request.auth.uid;
+      allow update: if isApproved() && isOwner(resource.data.userId);
+      allow delete: if isApproved() && isOwner(resource.data.userId);
+    }
+    
+    // Storyboards collection
+    match /storyboards/{storyboardId} {
+      allow create: if isApproved() && request.resource.data.userId == request.auth.uid;
+      allow read: if isApproved() && resource.data.userId == request.auth.uid;
+      allow update: if isApproved() && isOwner(resource.data.userId);
+      allow delete: if isApproved() && isOwner(resource.data.userId);
+    }
+    
+    // Emojis collection
+    match /emojis/{emojiSetId} {
+      allow create: if isApproved() && request.resource.data.userId == request.auth.uid;
+      allow read: if isApproved() && resource.data.userId == request.auth.uid;
+      allow update: if isApproved() && isOwner(resource.data.userId);
+      allow delete: if isApproved() && isOwner(resource.data.userId);
+    }
+    
+    // Admin settings (read-only for checking admin status)
+    match /adminSettings/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

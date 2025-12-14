@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isApproved() {
+      return isSignedIn() && 
+             firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == 'approved';
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Photos storage
+    match /photos/{userId}/{photoId} {
+      // Approved users can upload photos
+      allow create: if isApproved() && isOwner(userId) &&
+                      request.resource.size < 10 * 1024 * 1024 && // Max 10MB
+                      request.resource.contentType.matches('image/.*');
+      
+      // Users can read their own photos
+      allow read: if isApproved() && isOwner(userId);
+      
+      // Users can delete their own photos
+      allow delete: if isApproved() && isOwner(userId);
+    }
+    
+    // Thumbnails storage
+    match /thumbnails/{userId}/{photoId} {
+      allow create: if isApproved() && isOwner(userId) &&
+                      request.resource.size < 500 * 1024 && // Max 500KB
+                      request.resource.contentType.matches('image/.*');
+      allow read: if isApproved() && isOwner(userId);
+      allow delete: if isApproved() && isOwner(userId);
+    }
+    
+    // Receipts storage
+    match /receipts/{userId}/{receiptId} {
+      allow create: if isApproved() && isOwner(userId) &&
+                      request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                      request.resource.contentType.matches('image/.*');
+      allow read: if isApproved() && isOwner(userId);
+      allow delete: if isApproved() && isOwner(userId);
+    }
+    
+    // Emojis storage
+    match /emojis/{userId}/{emojiId} {
+      allow create: if isApproved() && isOwner(userId) &&
+                      request.resource.size < 1 * 1024 * 1024 && // Max 1MB
+                      request.resource.contentType.matches('image/.*');
+      allow read: if isApproved() && isOwner(userId);
+      allow delete: if isApproved() && isOwner(userId);
+    }
+    
+    // PDFs storage (for storyboards and expense reports)
+    match /pdfs/{userId}/{pdfId} {
+      allow create: if isApproved() && isOwner(userId) &&
+                      request.resource.size < 20 * 1024 * 1024 && // Max 20MB
+                      request.resource.contentType == 'application/pdf';
+      allow read: if isApproved() && isOwner(userId);
+      allow delete: if isApproved() && isOwner(userId);
+    }
+  }
+}
