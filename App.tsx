@@ -369,6 +369,43 @@ const App: React.FC = () => {
                 </>
               ) : (
                 <>
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
+                    <button
+                      onClick={() => setViewMode('all')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'all'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      title="전체 보기"
+                    >
+                      <Grid3x3 size={14} className="inline mr-1" />
+                      <span className="hidden sm:inline">전체</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('by-date')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-date'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      title="날짜별"
+                    >
+                      <CalendarIcon size={14} className="inline mr-1" />
+                      <span className="hidden sm:inline">날짜</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('by-location')}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-location'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      title="장소별"
+                    >
+                      <MapPinIcon size={14} className="inline mr-1" />
+                      <span className="hidden sm:inline">장소</span>
+                    </button>
+                  </div>
+
                   <button
                     onClick={toggleSelectionMode}
                     className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-bold rounded-full shadow-md transition-all flex items-center gap-1.5 sm:gap-2"
