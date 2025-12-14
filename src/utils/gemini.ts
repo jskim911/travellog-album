@@ -237,3 +237,76 @@ export const extractReceiptData = async (file: File): Promise<ReceiptData> => {
     throw new Error("영수증 분석 중 오류가 발생했습니다.");
   }
 };
+
+/**
+ * Analyzes photo emotion and suggests an emoji style caption
+ */
+export interface EmojiSuggestion {
+  caption: string;
+  emoji: string;
+  recommendedStyle: string;
+}
+
+export const analyzeEmotionAndSuggestEmoji = async (base64Image: string): Promise<EmojiSuggestion> => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+    // Remove data:image/png;base64, prefix if present
+    const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, "");
+
+    const prompt = `
+      이 사진은 사용자가 자신만의 '커스텀 이모지(스티커)'를 만들기 위해 얼굴이나 특정 대상을 확대한 사진입니다.
+      
+      사진 속 인물이나 상황의 '감정'과 '분위기'를 분석하여 다음 세 가지를 JSON으로 반환해주세요:
+      
+      1. caption: 이 이모지에 어울리는 짧고 재치있는 한 마디 (5~10자 이내). 예: "대박!", "헐...", "사랑해", "개이득"
+      2. emoji: 가장 잘 어울리는 유니코드 이모지 1개. 예: 😲, ❤️, 🔥
+      3. recommendedStyle: 이 사진과 어울리는 아트 스타일 1개 선택. 다음 중 하나: 'cartoon' (만화), 'sketch' (스케치), 'popart' (고채도), 'watercolor' (수채화), 'pixel' (픽셀아트). 만약 잘 모르겠으면 'original'을 선택.
+
+      예시 응답:
+      {
+        "caption": "배고파...",
+        "emoji": "🤤",
+        "recommendedStyle": "cartoon"
+      }
+    `;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: "image/png",
+          data: cleanBase64
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const text = response.text();
+    const cleanText = text.replace(/```json|```/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(cleanText);
+      return {
+        caption: parsed.caption || "최고!",
+        emoji: parsed.emoji || "👍",
+        recommendedStyle: parsed.recommendedStyle || "cartoon"
+      };
+    } catch (e) {
+      console.error("JSON Parse Error for emoji:", e);
+      return {
+        caption: "좋아요!",
+        emoji: "👍",
+        recommendedStyle: "cartoon"
+      };
+    }
+  } catch (error) {
+    // console.error("Gemini API Error (emoji):", error);
+    // Silent fail for demo if API limits reached
+    return {
+      caption: "여행 중",
+      emoji: "📷",
+      recommendedStyle: "original"
+    };
+  }
+};

@@ -1,14 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Crop, Sparkles, Download, RefreshCw, Check, Image as ImageIcon } from 'lucide-react';
+import { X, Crop, Sparkles, Download, RefreshCw, Check, Image as ImageIcon, Share2 } from 'lucide-react';
 import { Album } from '../../types';
+import { cropImage, applyStyle, EmojiStyle } from '../../src/utils/imageProcessor';
+import { analyzeEmotionAndSuggestEmoji, EmojiSuggestion } from '../../src/utils/gemini';
 
 interface EmojiGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    photos: Album[]; // 갤러리 사진 목록
+    photos: Album[]; // Gallery photos
 }
 
 type Step = 'select' | 'crop' | 'result';
+
+interface GeneratedEmoji {
+    id: string;
+    url: string;
+    style: EmojiStyle;
+    caption: string;
+    emojiIcon: string;
+}
 
 export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen, onClose, photos }) => {
     const [step, setStep] = useState<Step>('select');
@@ -22,7 +32,8 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
 
     // Generating State
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedEmojis, setGeneratedEmojis] = useState<string[]>([]);
+    const [generatedEmojis, setGeneratedEmojis] = useState<GeneratedEmoji[]>([]);
+    const [aiSuggestion, setAiSuggestion] = useState<EmojiSuggestion | null>(null);
 
     // Reset when opened
     useEffect(() => {
@@ -30,6 +41,7 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
             setStep('select');
             setSelectedPhoto(null);
             setGeneratedEmojis([]);
+            setAiSuggestion(null);
         }
     }, [isOpen]);
 
@@ -85,31 +97,79 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
             // Initial draw when image loads
             drawPreview();
         }
-    }, [step, cropScale, cropPosition]);
+    }, [step, cropScale, cropPosition, imageRef.current]);
 
     const handleGenerate = async () => {
+        if (!selectedPhoto) return;
         setIsGenerating(true);
 
-        // Simulate API call for now
-        setTimeout(() => {
-            // Dummy results (In real app, we would send the cropped image blobs to Gemini)
-            const dummyStyles = [
-                'Original', 'Vintage', 'Sketch', 'Cartoon',
-                'Pop Art', 'Neon', 'Watercolor', 'Pixel'
+        try {
+            // 1. Get Cropped Image Base64
+            // We need to calculate crop params relative to original image
+            // For simplicity in this demo, we'll capture the canvas state
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            const croppedBase64 = canvas.toDataURL('image/png');
+
+            // 2. Parallel Processing: Gemini AI Analysis + Style Filters
+            const promises: [Promise<EmojiSuggestion>, ...Promise<string>[]] = [
+                analyzeEmotionAndSuggestEmoji(croppedBase64),
+                // Filter styles
+                applyStyle(croppedBase64, 'original'),
+                applyStyle(croppedBase64, 'grayscale'),
+                applyStyle(croppedBase64, 'sepia'),
+                applyStyle(croppedBase64, 'pixel'),
+                applyStyle(croppedBase64, 'brightness'),
+                applyStyle(croppedBase64, 'contrast'),
+                applyStyle(croppedBase64, 'invert'),
+                applyStyle(croppedBase64, 'blur')
             ];
-            setIsGenerating(false);
+
+            const results = await Promise.all(promises);
+
+            const suggestion = results[0] as EmojiSuggestion;
+            setAiSuggestion(suggestion);
+
+            // 3. Create Result Objects
+            const styleNames: EmojiStyle[] = ['original', 'grayscale', 'sepia', 'pixel', 'brightness', 'contrast', 'invert', 'blur'];
+
+            const newEmojis: GeneratedEmoji[] = styleNames.map((style, index) => ({
+                id: `emoji_${Date.now()}_${index}`,
+                url: results[index + 1] as string,
+                style,
+                caption: suggestion.caption,
+                emojiIcon: suggestion.emoji
+            }));
+
+            setGeneratedEmojis(newEmojis);
             setStep('result');
-        }, 2000);
+
+        } catch (error) {
+            console.error("Failed to generate emoji:", error);
+            alert("이모지 생성 중 오류가 발생했습니다.");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleDownload = (emoji: GeneratedEmoji) => {
+        const link = document.createElement('a');
+        link.href = emoji.url;
+        link.download = `my_emoji_${emoji.style}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl h-[80vh] rounded-3xl overflow-hidden flex shadow-2xl">
+            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl h-[90vh] md:h-[80vh] rounded-3xl overflow-hidden flex shadow-2xl flex-col md:flex-row">
 
-                {/* Sidebar Steps */}
-                <div className="w-64 bg-slate-800 border-r border-slate-700 p-6 flex flex-col hidden md:flex">
+                {/* Sidebar Steps (Hidden on mobile) */}
+                <div className="w-64 bg-slate-800 border-r border-slate-700 p-6 flex-col hidden md:flex">
                     <h2 className="text-xl font-black text-white mb-8 bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent"> Emoji Maker</h2>
                     <div className="space-y-6">
                         <div className={`flex items-center gap-3 ${step === 'select' ? 'text-white' : 'text-slate-500'}`}>
@@ -128,14 +188,14 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col bg-slate-900 relative">
+                <div className="flex-1 flex flex-col bg-slate-900 relative h-full">
                     <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full z-10 transition-colors">
                         <X size={20} />
                     </button>
 
                     {/* STEP 1: Select Photo */}
                     {step === 'select' && (
-                        <div className="flex-1 p-8 overflow-y-auto">
+                        <div className="flex-1 p-6 md:p-8 overflow-y-auto">
                             <h3 className="text-2xl font-bold text-white mb-6">어떤 사진으로 만들까요?</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {photos.map(photo => (
@@ -156,10 +216,10 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
 
                     {/* STEP 2: Crop */}
                     {step === 'crop' && selectedPhoto && (
-                        <div className="flex-1 flex flex-col p-8 items-center justify-center">
-                            <h3 className="text-xl font-bold text-white mb-4">이모지로 쓸 부분을 원 안에 맞춰주세요</h3>
+                        <div className="flex-1 flex flex-col p-6 md:p-8 items-center justify-center overflow-y-auto">
+                            <h3 className="text-xl font-bold text-white mb-4 text-center">이모지로 쓸 부분을 원 안에 맞춰주세요</h3>
 
-                            <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden border-4 border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)] mb-8 bg-slate-800">
+                            <div className="relative w-[280px] h-[280px] md:w-[300px] md:h-[300px] rounded-full overflow-hidden border-4 border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)] mb-8 bg-slate-800 flex-shrink-0">
                                 {/* Hidden source image for canvas to draw */}
                                 <img
                                     ref={imageRef}
@@ -191,13 +251,13 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
                                 <div className="grid grid-cols-2 gap-4 pt-4">
                                     <button
                                         onClick={() => setStep('select')}
-                                        className="py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors"
+                                        className="py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-sm"
                                     >
-                                        다른 사진 선택
+                                        다시 선택
                                     </button>
                                     <button
                                         onClick={handleGenerate}
-                                        className="py-3 bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2"
+                                        className="py-3 bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm"
                                     >
                                         <Sparkles size={18} />
                                         이모지 생성
@@ -209,52 +269,59 @@ export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen
 
                     {/* STEP 3: Loading / Result */}
                     {step === 'result' && (
-                        <div className="flex-1 flex flex-col p-8 items-center justify-center">
+                        <div className="flex-1 flex flex-col p-6 md:p-8 items-center justify-center overflow-y-auto h-full">
                             {isGenerating ? (
                                 <div className="text-center">
                                     <div className="w-20 h-20 mb-6 relative mx-auto">
                                         <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
                                         <div className="absolute inset-0 border-4 border-t-pink-500 rounded-full animate-spin"></div>
                                     </div>
-                                    <h3 className="text-2xl font-black text-white mb-2">AI가 이모지를 만드는 중...</h3>
-                                    <p className="text-slate-400">약 5~10초 정도 소요됩니다.</p>
+                                    <h3 className="text-2xl font-black text-white mb-2">AI가 분석 중입니다...</h3>
+                                    <p className="text-slate-400">표정을 읽고 이모지를 만들고 있어요.</p>
                                 </div>
                             ) : (
-                                <div className="text-center w-full max-w-3xl">
-                                    <div className="mb-8">
-                                        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-in zoom-in">
-                                            <Check size={32} className="text-white" />
-                                        </div>
-                                        <h3 className="text-2xl font-black text-white">나만의 이모지 완성! 🎉</h3>
-                                        <p className="text-slate-400 mt-2">마음에 드는 스타일을 선택해서 다운로드하세요.</p>
+                                <div className="text-center w-full max-w-4xl h-full flex flex-col">
+                                    <div className="mb-6 flex-shrink-0">
+                                        <h3 className="text-2xl font-black text-white flex items-center justify-center gap-2">
+                                            <span className="text-3xl">{aiSuggestion?.emoji}</span>
+                                            <span>{aiSuggestion?.caption}</span>
+                                        </h3>
+                                        <p className="text-slate-400 mt-1 text-sm">AI가 추천하는 멘트와 다양한 스타일의 이모지입니다.</p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                                        {/* Mock Results */}
-                                        {[...Array(8)].map((_, i) => (
-                                            <div key={i} className="aspect-square bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-700 hover:border-pink-500 transition-colors group cursor-pointer relative overflow-hidden">
-                                                {/* We would show generated images here */}
-                                                <span className="text-4xl">😎</span>
-                                                <p className="absolute bottom-2 text-[10px] text-slate-500 uppercase tracking-wider font-bold">Style {i + 1}</p>
+                                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-2">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            {generatedEmojis.map((emoji) => (
+                                                <div key={emoji.id} className="relative aspect-square bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-700 hover:border-pink-500 transition-all group cursor-pointer overflow-hidden p-2">
+                                                    <div className="relative w-full h-full rounded-full overflow-hidden shadow-lg">
+                                                        <img src={emoji.url} alt={emoji.style} className="w-full h-full object-cover" />
+                                                    </div>
 
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Download className="text-white" />
+                                                    <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
+                                                        {emoji.style}
+                                                    </div>
+
+                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                                                        <button
+                                                            onClick={() => handleDownload(emoji)}
+                                                            className="p-2 bg-white text-slate-900 rounded-full hover:scale-110 transition-transform"
+                                                            title="다운로드"
+                                                        >
+                                                            <Download size={20} />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
 
-                                    <div className="flex gap-4 justify-center">
+                                    <div className="flex gap-4 justify-center mt-6 flex-shrink-0">
                                         <button
                                             onClick={() => setStep('crop')}
-                                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 transition-colors"
+                                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 transition-colors text-sm"
                                         >
                                             <RefreshCw size={18} />
                                             다시 만들기
-                                        </button>
-                                        <button className="px-8 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-lg shadow-pink-500/30 flex items-center gap-2 transition-transform hover:-translate-y-1">
-                                            <Download size={18} />
-                                            전체 다운로드
                                         </button>
                                     </div>
                                 </div>
