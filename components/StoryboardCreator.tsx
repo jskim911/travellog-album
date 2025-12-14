@@ -1,8 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Download, X, Layout, Grid, List, BookOpen, Type, Sparkles } from 'lucide-react';
+import { Download, X, Layout, Grid, List, BookOpen, Type, Sparkles, Save } from 'lucide-react';
 import { Album } from '../types';
 import { generateStoryboardPDF, downloadPDF } from '../src/utils/pdfGenerator';
 import { generateCaptionSuggestions } from '../src/utils/gemini';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../src/hooks/useAuth';
 
 interface StoryboardCreatorProps {
     isOpen: boolean;
@@ -17,9 +20,11 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
     onClose,
     selectedAlbums
 }) => {
+    const { user } = useAuth();
     const [layout, setLayout] = useState<LayoutType>('grid');
     const [title, setTitle] = useState('나의 여행 이야기');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [captions, setCaptions] = useState<Record<string, string>>({});
     const previewRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +77,34 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
         setCaptions(prev => ({ ...prev, [id]: text }));
     };
 
+    const handleSave = async () => {
+        if (!user) return;
+        setIsSaving(true);
+        try {
+            const storyboardData = {
+                userId: user.uid,
+                title,
+                layout,
+                photos: selectedAlbums.map(album => ({
+                    photoId: album.id,
+                    url: album.coverUrl,
+                    caption: captions[album.id] || '',
+                    location: album.location || ''
+                })),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            await addDoc(collection(db, 'storyboards'), storyboardData);
+            alert('스토리보드가 저장되었습니다!');
+        } catch (error) {
+            console.error('Failed to save storyboard:', error);
+            alert('저장 중 오류가 발생했습니다.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="bg-slate-50 w-full max-w-6xl h-[90vh] rounded-3xl overflow-hidden flex shadow-2xl">
@@ -108,8 +141,8 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
                                 <button
                                     onClick={() => setLayout('grid')}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'grid'
-                                            ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                            : 'border-slate-200 hover:border-violet-200 text-slate-600'
+                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
+                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
                                         }`}
                                 >
                                     <Grid size={18} />
@@ -118,8 +151,8 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
                                 <button
                                     onClick={() => setLayout('timeline')}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'timeline'
-                                            ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                            : 'border-slate-200 hover:border-violet-200 text-slate-600'
+                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
+                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
                                         }`}
                                 >
                                     <List size={18} />
@@ -128,8 +161,8 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
                                 <button
                                     onClick={() => setLayout('magazine')}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'magazine'
-                                            ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                            : 'border-slate-200 hover:border-violet-200 text-slate-600'
+                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
+                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
                                         }`}
                                 >
                                     <Layout size={18} />
@@ -165,24 +198,39 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
                             </div>
                         </div>
 
-                        {/* Export Button */}
-                        <button
-                            onClick={handleExport}
-                            disabled={isGenerating}
-                            className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>생성 중...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Download size={20} />
-                                    <span>PDF 내보내기</span>
-                                </>
-                            )}
-                        </button>
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || isGenerating}
+                                className="flex-1 py-4 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
+                            >
+                                {isSaving ? (
+                                    <div className="w-5 h-5 border-2 border-violet-600/30 border-t-violet-600 rounded-full animate-spin" />
+                                ) : (
+                                    <Save size={20} />
+                                )}
+                                <span>저장</span>
+                            </button>
+
+                            <button
+                                onClick={handleExport}
+                                disabled={isGenerating || isSaving}
+                                className="flex-[2] py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>생성 중...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={20} />
+                                        <span>PDF 내보내기</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
