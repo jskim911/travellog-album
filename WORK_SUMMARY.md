@@ -223,6 +223,31 @@ The `generateEmojiImage()` function is currently a **placeholder**. For producti
 
 ---
 
+### Session 2: Deployment & Final Polish (2025-12-15)
+
+#### 1. PDF Export Perfection
+- **Full Page Capture**: Solved the issue where long roadmaps were cut off in PDF export.
+- **Solution**: Implemented a `clone & expand` technique using `html2canvas` to capture the entire scrollable content as a single high-quality image before PDF conversion.
+- **Landscape Mode**: Optimized Roadmap PDF to landscape orientation for better timeline visibility.
+
+#### 2. Admin Panel & Security
+- **Admin Identification**: Added `Name (Email)` display in the Admin Panel header for clear identity verification.
+- **Signup Security**: Implemented `auth.signOut()` immediately after signup to prevent auto-login. New users must wait for admin approval (status: `pending`) before accessing the app.
+
+#### 3. UI/UX Final Touches
+- **Navigation Tabs**: Renamed to "여행 갤러리 만들기" and "여행 계획 세우기" with larger, easier-to-click buttons (`text-lg`, `px-6`).
+- **Visual Polish**: Improved button sizes and layout consistency across the header.
+
+#### 4. Successful Deployment 🚀
+- **Platform**: Vercel (via GitHub Integration)
+- **Workflow**: 
+  1. Push `feature/v2-enhancement` branch
+  2. Merge into `main` branch
+  3. Automatic Production Deployment triggered
+- **Status**: **Live & Verified** (User confirmed "Production now")
+
+---
+
 ## 📝 Previous Work Summary (2025-12-14)
 
 ### 1. AI Emoji Generator (Phase 5 Complete)

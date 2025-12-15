@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator } from 'lucide-react';
-import { collection, query, where, onSnapshot, deleteDoc, doc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -8,14 +8,19 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { Expense, ExpenseCategory, Itinerary } from '../../types';
 import { ExpenseInputModal } from './ExpenseInputModal';
 
-export const ExpenseSection: React.FC = () => {
+interface ExpenseSectionProps {
+    selectedTripId: string | null;
+}
+
+export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }) => {
     const { user, loading: authLoading } = useAuth();
-    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]); // Filtered
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const printRef = React.useRef<HTMLDivElement>(null);
 
-    // Trip Info for PDF
+    // Trip Info for PDF and Header
     const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
     const [participantCount, setParticipantCount] = useState(1);
 
@@ -23,15 +28,14 @@ export const ExpenseSection: React.FC = () => {
     const [totalAmount, setTotalAmount] = useState(0);
     const [categoryStats, setCategoryStats] = useState<{ category: ExpenseCategory, amount: number, percentage: number }[]>([]);
 
+    // 1. Fetch All Expenses for User
     useEffect(() => {
         if (authLoading) return;
-
         if (!user) {
             setLoading(false);
             return;
         }
 
-        // 1. Fetch Expenses
         const qExpenses = query(
             collection(db, 'expenses'),
             where('userId', '==', user.uid)
@@ -53,50 +57,58 @@ export const ExpenseSection: React.FC = () => {
                 return createdB - createdA;
             });
 
-            setExpenses(fetchedExpenses);
-            calculateStats(fetchedExpenses);
+            setAllExpenses(fetchedExpenses);
             setLoading(false);
         }, (error) => {
             console.error("Error fetching expenses:", error);
             setLoading(false);
         });
 
-        // 2. Fetch Latest Itinerary (for Header Info)
-        const qTrip = query(
-            collection(db, 'itineraries'),
-            where('userId', '==', user.uid),
-            // Client-side sorting will happen in snapshot since we might not have index
-        );
-
-        const unsubscribeTrip = onSnapshot(qTrip, (snapshot) => {
-            if (!snapshot.empty) {
-                const trips = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        ...data,
-                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                    } as Itinerary;
-                });
-                // Sort client-side
-                trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
-                setCurrentTrip(trips[0]);
-            }
-        });
-
-        return () => {
-            unsubscribeExpenses();
-            unsubscribeTrip();
-        };
+        return () => unsubscribeExpenses();
     }, [user, authLoading]);
 
+    // 2. Filter Expenses & Fetch Trip Info when selectedTripId changes
+    useEffect(() => {
+        // Filter logic
+        if (selectedTripId) {
+            const filtered = allExpenses.filter(e => e.itineraryId === selectedTripId);
+            setExpenses(filtered);
+            calculateStats(filtered);
+
+            // Fetch specific trip info
+            const fetchTrip = async () => {
+                try {
+                    const docRef = doc(db, 'itineraries', selectedTripId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setCurrentTrip({
+                            id: docSnap.id,
+                            ...data,
+                            startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                            endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                        } as Itinerary);
+                    } else {
+                        setCurrentTrip(null);
+                    }
+                } catch (err) {
+                    console.error("Error fetching trip details", err);
+                }
+            };
+            fetchTrip();
+        } else {
+            // Show ALL/Global expenses logic?
+            // If no trip selected, let's show all expenses but indicate it's "All"
+            setExpenses(allExpenses);
+            calculateStats(allExpenses);
+            setCurrentTrip(null);
+        }
+    }, [selectedTripId, allExpenses]);
+
     const calculateStats = (data: Expense[]) => {
-        // 1. Total Amount (Note: Ignoring currency conversion for MVP)
         const total = data.reduce((sum, item) => sum + item.amount, 0);
         setTotalAmount(total);
 
-        // 2. Category Stats
         const catMap: Record<string, number> = {};
         data.forEach(item => {
             catMap[item.category] = (catMap[item.category] || 0) + item.amount;
@@ -163,10 +175,8 @@ export const ExpenseSection: React.FC = () => {
                 backgroundColor: '#ffffff',
             });
             const imgData = canvas.toDataURL('image/png');
-
-            // A4 size: 210mm x 297mm
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth(); // 210
+            const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
@@ -181,7 +191,6 @@ export const ExpenseSection: React.FC = () => {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header / Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                {/* Participant Input */}
                 <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
                         <Users size={16} />
@@ -235,7 +244,7 @@ export const ExpenseSection: React.FC = () => {
                         </>
                     ) : (
                         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-6 tracking-tight">
-                            여행 경비 리포트
+                            전체 지출 내역
                         </h1>
                     )}
 
@@ -342,7 +351,7 @@ export const ExpenseSection: React.FC = () => {
                 <div>
                     <div className="flex justify-between items-center mb-4 px-2">
                         <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            최근 지출 내역
+                            {selectedTripId ? '이 여행의 지출 내역' : '전체 지출 내역'}
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-normal">{expenses.length}</span>
                         </h3>
                         <button
@@ -363,7 +372,9 @@ export const ExpenseSection: React.FC = () => {
                         ) : expenses.length === 0 ? (
                             <div className="p-12 text-center text-slate-400">
                                 <Receipt size={48} className="mx-auto mb-3 opacity-20" />
-                                <p className="text-sm">아직 지출 내역이 없습니다.</p>
+                                <p className="text-sm">
+                                    {selectedTripId ? '이 여행에 등록된 지출 내역이 없습니다.' : '아직 지출 내역이 없습니다.'}
+                                </p>
                                 <button
                                     onClick={() => setIsModalOpen(true)}
                                     className="mt-4 text-emerald-600 font-bold text-sm hover:underline"
@@ -416,6 +427,7 @@ export const ExpenseSection: React.FC = () => {
             <ExpenseInputModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                tripId={selectedTripId}
             />
         </div>
     );

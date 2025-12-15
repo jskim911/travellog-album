@@ -5,6 +5,7 @@ import { ExpenseSection } from './ExpenseSection';
 
 export const RoadmapPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses'>('itinerary');
+    const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
@@ -22,8 +23,8 @@ export const RoadmapPage: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('itinerary')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'itinerary'
-                            ? 'bg-white text-violet-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-violet-600 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <Calendar size={18} />
@@ -32,8 +33,8 @@ export const RoadmapPage: React.FC = () => {
                 <button
                     onClick={() => setActiveTab('expenses')}
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'expenses'
-                            ? 'bg-white text-emerald-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                        ? 'bg-white text-emerald-600 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
                     <DollarSign size={18} />
@@ -44,9 +45,14 @@ export const RoadmapPage: React.FC = () => {
             {/* Content Area */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm min-h-[600px] p-6 sm:p-8">
                 {activeTab === 'itinerary' ? (
-                    <ItinerarySection />
+                    <ItinerarySection
+                        selectedTripId={selectedTripId}
+                        onSelectTrip={setSelectedTripId}
+                    />
                 ) : (
-                    <ExpenseSection />
+                    <ExpenseSection
+                        selectedTripId={selectedTripId}
+                    />
                 )}
             </div>
         </div>

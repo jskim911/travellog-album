@@ -10,9 +10,10 @@ import { useAuth } from '../../src/hooks/useAuth';
 interface ExpenseInputModalProps {
     isOpen: boolean;
     onClose: () => void;
+    tripId: string | null;
 }
 
-export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, onClose }) => {
+export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, onClose, tripId }) => {
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
 
             const expenseData = {
                 userId: user.uid,
+                itineraryId: tripId,
                 date: new Date(date), // Firestore Timestamp would be better but Date is okay with converter
                 description,
                 amount: Number(amount),
@@ -242,8 +244,15 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                         ) : (
                             <Check size={20} />
                         )}
-                        <span>저장하기</span>
+                        <span>
+                            {tripId ? '이 여행 경비로 저장' : '공통 경비로 저장'}
+                        </span>
                     </button>
+                    {!tripId && (
+                        <p className="text-center text-xs text-slate-400 mt-2">
+                            선택된 여행이 없습니다. 전체 지출에 포함됩니다.
+                        </p>
+                    )}
                 </form>
             </div>
         </div>
