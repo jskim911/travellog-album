@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, FileImage, CheckCircle2, Sparkles, LogIn, MapPin, Camera, PlusCircle } from 'lucide-react';
+import { Upload, X, FileImage, CheckCircle2, Sparkles, LogIn, MapPin, Camera, PlusCircle, Calendar } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { storage, db } from '../firebase';
@@ -30,6 +30,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   const [locationInput, setLocationInput] = useState('');
+  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]); // Default to today
   const [progressMessage, setProgressMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -176,7 +177,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
           aiSuggestions: aiSuggestions.length > 0 ? aiSuggestions : undefined,
           title: aiTitle,
           rating: aiRating,
-          date: serverTimestamp(),
+          date: Timestamp.fromDate(new Date(dateInput)),
           uploadedAt: serverTimestamp(),
           metadata: {
             originalName: file.name,
@@ -202,6 +203,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
         setUploadStatus('idle');
         setProgressMessage('');
         setLocationInput('');
+        setDateInput(new Date().toISOString().split('T')[0]); // Reset to today
         setAiSuggestions([]);
         setSelectedCaption('');
         setCustomCaption('');
@@ -243,10 +245,10 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200/60">
-      <div className="grid md:grid-cols-2 gap-0">
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200/60 w-full">
+      <div className="grid md:grid-cols-[5fr_4fr] gap-0">
         {/* Left Side - Travel Inspiration */}
-        <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-8 sm:p-12 flex flex-col justify-between min-h-[300px] md:min-h-[400px] overflow-hidden">
+        <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 grid grid-cols-2 overflow-hidden min-h-[200px]">
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full animate-pulse"></div>
@@ -259,58 +261,53 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" style={{ animationDuration: '5s' }}></div>
 
           {/* Content */}
-          <div className="relative z-10 animate-in fade-in slide-in-from-left-5 duration-700">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-105">
+          {/* Content Group 1: Title & Desc (Left) */}
+          <div className="relative z-10 flex flex-col justify-center items-start pl-2 sm:pl-4 animate-in fade-in slide-in-from-left-5 duration-700">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full mb-4">
               <Camera size={16} className="text-white" />
               <span className="text-white text-sm font-bold">TravelLog</span>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight animate-in fade-in slide-in-from-left-3 duration-1000">
-              여행의 순간을<br />
-              영원히 간직하세요
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight">
+              여행의 순간을<br />영원히 간직하세요
             </h2>
 
-            <p className="text-white/90 text-base sm:text-lg leading-relaxed mb-6 animate-in fade-in slide-in-from-left-3 duration-1000 delay-150">
-              아름다운 추억을 사진으로 기록하고,<br />
-              장소별로 정리하여 언제든 다시 떠올려보세요.
+            <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
+              추억을 기록하고<br />언제든 떠올려보세요.
             </p>
-
-            {/* Features with staggered animation */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-700 delay-300 hover:translate-x-2 transition-transform">
-                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all duration-300">
-                  <CheckCircle2 size={16} className="text-white" />
-                </div>
-                <span className="text-white/90 text-sm">장소별 자동 분류</span>
-              </div>
-              <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-700 delay-500 hover:translate-x-2 transition-transform">
-                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all duration-300">
-                  <CheckCircle2 size={16} className="text-white" />
-                </div>
-                <span className="text-white/90 text-sm">무제한 사진 저장</span>
-              </div>
-              <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-700 delay-700 hover:translate-x-2 transition-transform">
-                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all duration-300">
-                  <CheckCircle2 size={16} className="text-white" />
-                </div>
-                <span className="text-white/90 text-sm">추억 비디오 제작</span>
-              </div>
-            </div>
           </div>
 
-          {/* Decorative Icons with hover effects */}
-          <div className="relative z-10 flex gap-3 mt-8 animate-in fade-in slide-in-from-bottom-3 duration-1000 delay-1000">
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center hover:bg-white/20 hover:scale-125 hover:-rotate-12 transition-all duration-300 cursor-pointer">
-              <span className="text-2xl">✈️</span>
+          {/* Content Group 2: Features & Icons (Center of Right Half) */}
+          <div className="relative z-10 flex flex-col justify-center items-center gap-6">
+            {/* Features */}
+            <div className="space-y-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm shadow-inner border border-white/10">
+              <div className="flex items-center gap-3 text-white font-bold text-sm">
+                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                  <CheckCircle2 size={14} className="text-violet-600" />
+                </div>
+                <span>장소별 자동 분류</span>
+              </div>
+              <div className="flex items-center gap-3 text-white font-bold text-sm">
+                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                  <CheckCircle2 size={14} className="text-violet-600" />
+                </div>
+                <span>무제한 사진 저장</span>
+              </div>
+              <div className="flex items-center gap-3 text-white font-bold text-sm">
+                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                  <CheckCircle2 size={14} className="text-violet-600" />
+                </div>
+                <span>추억 비디오 제작</span>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center hover:bg-white/20 hover:scale-125 hover:rotate-12 transition-all duration-300 cursor-pointer animate-bounce" style={{ animationDuration: '3s', animationDelay: '0.5s' }}>
-              <span className="text-2xl">🏖️</span>
-            </div>
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center hover:bg-white/20 hover:scale-125 hover:-rotate-12 transition-all duration-300 cursor-pointer">
-              <span className="text-2xl">🗺️</span>
-            </div>
-            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center hover:bg-white/20 hover:scale-125 hover:rotate-12 transition-all duration-300 cursor-pointer animate-bounce" style={{ animationDuration: '3s', animationDelay: '1s' }}>
-              <span className="text-2xl">📸</span>
+
+            {/* Icons */}
+            <div className="flex gap-3">
+              {['✈️', '🏖️', '🗺️', '📸'].map((emoji, i) => (
+                <div key={i} className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all cursor-pointer shadow-lg">
+                  <span className="text-lg">{emoji}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -385,6 +382,17 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
                       <PlusCircle size={28} className="text-violet-600" />
                     </button>
                   </div>
+                </div>
+
+                {/* Date Input */}
+                <div className="relative mb-3">
+                  <input
+                    type="date"
+                    value={dateInput}
+                    onChange={(e) => setDateInput(e.target.value)}
+                    className="w-full px-4 py-3 pl-11 rounded-xl border-2 border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all bg-white font-medium text-slate-700"
+                  />
+                  <Calendar size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
 
                 {/* Location Input */}

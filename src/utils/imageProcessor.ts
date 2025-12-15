@@ -1,7 +1,7 @@
 // Image processing utilities using HTML5 Canvas
 // This acts as our "Local AI" styling engine
 
-export type EmojiStyle = 'original' | 'grayscale' | 'sepia' | 'pixel' | 'blur' | 'brightness' | 'contrast' | 'invert';
+export type EmojiStyle = 'original' | 'grayscale' | 'sepia' | 'pixel' | 'blur' | 'brightness' | 'contrast' | 'invert' | '3d-avatar';
 
 export const applyStyle = async (
     imageUrl: string,
@@ -149,6 +149,78 @@ export const cropImage = async (
             outCtx.drawImage(canvas, 0, 0);
 
             resolve(outputCanvas.toDataURL());
+        };
+        img.onerror = reject;
+    });
+};
+
+/**
+ * Applies a simulated "3D Avatar / Cartoon" look and overlays an emotion emoji
+ */
+export const applyAvatarEffect = async (
+    imageUrl: string,
+    emotionEmoji: string, // e.g. "😊"
+    filterColor: string = 'rgba(255, 200, 0, 0.2)'
+): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const width = 400; // Standardize/upscale size for better quality
+            const height = 400;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // Optional: Circular Crop for "Headshot" feel if it's a sticker
+            // ctx.beginPath();
+            // ctx.arc(width/2, height/2, width/2, 0, Math.PI*2);
+            // ctx.clip();
+
+            // 1. Draw Image with "Soft" effect
+            ctx.filter = 'saturate(1.3) contrast(1.1)';
+
+            // If we want a "Sticker" cutout effect, we would need complex semantic segmentation (AI).
+            // Since we are doing this locally with Canvas, we will keep the square/circle shape 
+            // but can support transparent backgrounds if the input was already transparent.
+            // For now, we draw the image as is.
+            ctx.drawImage(img, 0, 0, width, height);
+            ctx.filter = 'none';
+
+            // 2. Overlay Color Tint (Only if not fully transparent)
+            if (filterColor !== 'transparent') {
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = filterColor;
+                ctx.fillRect(0, 0, width, height);
+                ctx.globalCompositeOperation = 'source-over';
+
+                // 3. Vignette (Only for card style)
+                const gradient = ctx.createRadialGradient(width / 2, height / 2, width / 3, width / 2, height / 2, width / 1.5);
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.3)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // 4. Overlay Emoji (Sticker Badge)
+            ctx.font = '80px Arial';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 10;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(emotionEmoji, width - 20, height - 20);
+
+            // 5. Add "Gloss" highlight (Subtle 3D effect)
+            ctx.beginPath();
+            ctx.ellipse(width * 0.7, height * 0.2, width * 0.15, height * 0.1, Math.PI / -4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fill();
+
+            resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = reject;
     });

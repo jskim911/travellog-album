@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Calendar as CalendarIcon, Clock, ChevronRight, MoreHorizontal, Trash2, PenTool } from 'lucide-react';
+import { Plus, MapPin, Calendar as CalendarIcon, Clock, ChevronRight, MoreHorizontal, Trash2, PenTool, Map as MapIcon } from 'lucide-react';
 import { collection, query, where, orderBy, limit, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../src/hooks/useAuth';
 import { Itinerary, Route, Place } from '../../types';
+import { RoadmapVisualizationModal } from './RoadmapVisualizationModal';
 
 export const ItinerarySection: React.FC = () => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
     const [selectedDayDayIndex, setSelectedDayIndex] = useState(0);
@@ -23,34 +24,55 @@ export const ItinerarySection: React.FC = () => {
     const [newPlaceTime, setNewPlaceTime] = useState('');
     const [newPlaceMemo, setNewPlaceMemo] = useState('');
 
+    // Visualization Modal State
+    const [showVisualMap, setShowVisualMap] = useState(false);
+
+    // Edit State
+    const [editingPlaceIndex, setEditingPlaceIndex] = useState<number | null>(null);
+    const [editPlaceName, setEditPlaceName] = useState('');
+    const [editPlaceTime, setEditPlaceTime] = useState('');
+    const [editPlaceMemo, setEditPlaceMemo] = useState('');
+
     // Fetch Logic
     useEffect(() => {
-        if (!user) return;
+        if (authLoading) return;
+
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         const q = query(
             collection(db, 'itineraries'),
-            where('userId', '==', user.uid),
-            orderBy('startDate', 'desc'),
-            limit(1)
+            where('userId', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                // Convert timestamps to Date objects for easier handling
-                setCurrentTrip({
-                    id: snapshot.docs[0].id,
-                    ...data,
-                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                } as Itinerary);
+                const trips = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    } as Itinerary;
+                });
+
+                // Sort in memory (descending by startDate)
+                trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+
+                setCurrentTrip(trips[0]);
             } else {
                 setCurrentTrip(null);
             }
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching itinerary:", error);
+            setLoading(false);
         });
 
         return () => unsubscribe();
-    }, [user]);
+    }, [user, authLoading]);
 
     const handleCreateTrip = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,6 +168,49 @@ export const ItinerarySection: React.FC = () => {
             });
         } catch (error) {
             console.error("Error deleting place:", error);
+        }
+    };
+
+    const startEditing = (index: number, place: Place) => {
+        setEditingPlaceIndex(index);
+        setEditPlaceName(place.name);
+        setEditPlaceTime(place.visitTime || '');
+        setEditPlaceMemo(place.address || ''); // Using address as memo
+    };
+
+    const cancelEditing = () => {
+        setEditingPlaceIndex(null);
+        setEditPlaceName('');
+        setEditPlaceTime('');
+        setEditPlaceMemo('');
+    };
+
+    const handleUpdatePlace = async (placeIndex: number) => {
+        if (!currentTrip || !editPlaceName) return;
+
+        try {
+            const updatedRoutes = [...currentTrip.routes];
+            const currentRoute = updatedRoutes[selectedDayDayIndex];
+
+            // Update the specific place
+            currentRoute.visitedPlaces[placeIndex] = {
+                name: editPlaceName,
+                visitTime: editPlaceTime,
+                address: editPlaceMemo
+            };
+
+            // Resort by time
+            currentRoute.visitedPlaces.sort((a, b) => (a.visitTime || '').localeCompare(b.visitTime || ''));
+
+            await updateDoc(doc(db, 'itineraries', currentTrip.id), {
+                routes: updatedRoutes,
+                updatedAt: serverTimestamp()
+            });
+
+            cancelEditing();
+        } catch (error) {
+            console.error("Error updating place:", error);
+            alert("수정 실패");
         }
     };
 
@@ -265,14 +330,24 @@ export const ItinerarySection: React.FC = () => {
                         <span>{currentTrip.routes.length} Days</span>
                     </div>
                 </div>
-                <button
-                    onClick={handleDeleteTrip}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                    title="여행 삭제"
-                >
-                    <Trash2 size={20} />
-                </button>
-            </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowVisualMap(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 rounded-xl font-bold transition-all shadow-sm"
+                    >
+                        <MapIcon size={18} />
+                        <span className="hidden sm:inline">로드맵 보기</span>
+                    </button>
+                    <button
+                        onClick={handleDeleteTrip}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                        title="여행 삭제"
+                    >
+                        <Trash2 size={20} />
+                    </button>
+                </div>
+            </div >
 
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Left: Day Selector (Vertical on Desktop) */}
@@ -340,30 +415,84 @@ export const ItinerarySection: React.FC = () => {
                             currentTrip.routes[selectedDayDayIndex].visitedPlaces.map((place, idx) => (
                                 <div key={idx} className="relative z-10 pl-8 group">
                                     {/* Dot */}
-                                    <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-slate-50 bg-violet-500 ring-1 ring-slate-200"></div>
+                                    <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-slate-50 ring-1 ring-slate-200 ${editingPlaceIndex === idx ? 'bg-amber-400' : 'bg-violet-500'}`}></div>
 
-                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                {place.visitTime && (
-                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-violet-600 mb-1">
-                                                        <Clock size={12} />
-                                                        {place.visitTime}
-                                                    </div>
-                                                )}
-                                                <h4 className="font-bold text-slate-800 text-lg">{place.name}</h4>
-                                                {place.address && (
-                                                    <p className="text-sm text-slate-500 mt-1 whitespace-pre-wrap">{place.address}</p>
-                                                )}
+                                    {editingPlaceIndex === idx ? (
+                                        // Edit Mode Form
+                                        <div className="bg-white p-4 rounded-xl border-2 border-amber-200 shadow-md">
+                                            <div className="space-y-3">
+                                                <input
+                                                    autoFocus
+                                                    value={editPlaceName}
+                                                    onChange={e => setEditPlaceName(e.target.value)}
+                                                    placeholder="장소명"
+                                                    className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200"
+                                                />
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="time"
+                                                        value={editPlaceTime}
+                                                        onChange={e => setEditPlaceTime(e.target.value)}
+                                                        className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-amber-200"
+                                                    />
+                                                    <input
+                                                        value={editPlaceMemo}
+                                                        onChange={e => setEditPlaceMemo(e.target.value)}
+                                                        placeholder="메모 (선택)"
+                                                        className="flex-[2] px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-amber-200"
+                                                    />
+                                                </div>
+                                                <div className="flex justify-end gap-2 mt-2">
+                                                    <button
+                                                        onClick={cancelEditing}
+                                                        className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
+                                                    >
+                                                        취소
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleUpdatePlace(idx)}
+                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-lg"
+                                                    >
+                                                        저장
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={() => handleDeletePlace(selectedDayDayIndex, idx)}
-                                                className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        // View Mode
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    {place.visitTime && (
+                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-violet-600 mb-1">
+                                                            <Clock size={12} />
+                                                            {place.visitTime}
+                                                        </div>
+                                                    )}
+                                                    <h4 className="font-bold text-slate-800 text-lg">{place.name}</h4>
+                                                    {place.address && (
+                                                        <p className="text-sm text-slate-500 mt-1 whitespace-pre-wrap">{place.address}</p>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => startEditing(idx, place)}
+                                                        className="p-1.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
+                                                        title="수정"
+                                                    >
+                                                        <PenTool size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeletePlace(selectedDayDayIndex, idx)}
+                                                        className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                        title="삭제"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -418,6 +547,11 @@ export const ItinerarySection: React.FC = () => {
                     </div>
                 </div>
             </div>
+            <RoadmapVisualizationModal
+                isOpen={showVisualMap}
+                onClose={() => setShowVisualMap(false)}
+                itinerary={currentTrip}
+            />
         </div>
     );
 };

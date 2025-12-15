@@ -74,7 +74,7 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
 
             {/* Photos Grid */}
             {isExpanded && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3 sm:gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     {albums.map((album) => (
                         <PhotoCard
                             key={album.id}

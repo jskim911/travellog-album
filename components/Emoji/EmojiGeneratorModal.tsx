@@ -1,333 +1,445 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Crop, Sparkles, Download, RefreshCw, Check, Image as ImageIcon, Share2 } from 'lucide-react';
+/**
+ * Emoji Me - 3D Sticker Pack Generator
+ * Design: Polaroid style with Gallery Selection Overlay
+ * Output: 3D Pixar-style rendered characters (simulated locally)
+ */
+import React, { useState, ChangeEvent, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, Loader2, Download, X, Image as ImageIcon } from 'lucide-react';
+import { generateEmojiImage } from '../../src/utils/gemini';
 import { Album } from '../../types';
-import { cropImage, applyStyle, EmojiStyle } from '../../src/utils/imageProcessor';
-import { analyzeEmotionAndSuggestEmoji, EmojiSuggestion } from '../../src/utils/gemini';
+
+// 이모지 카테고리 데이터 정의
+type EmojiDef = { name: string; emoji: string; prompt: string; color: string };
+
+const EMOJI_CATEGORIES: Record<string, EmojiDef[]> = {
+    "Classic": [
+        { name: 'Happy', emoji: '😊', prompt: 'smiling happily', color: 'rgba(255, 223, 0, 0.3)' },
+        { name: 'Laughing', emoji: '😂', prompt: 'laughing, tears of joy', color: 'rgba(135, 206, 235, 0.3)' },
+        { name: 'Surprised', emoji: '😲', prompt: 'wide eyes, jaw dropped', color: 'rgba(255, 165, 0, 0.3)' },
+        { name: 'Sad', emoji: '😢', prompt: 'crying, sad expression', color: 'rgba(100, 149, 237, 0.3)' },
+        { name: 'Angry', emoji: '😠', prompt: 'angry face, eyebrows furrowed', color: 'rgba(255, 69, 0, 0.3)' },
+        { name: 'Thumbs Up', emoji: '👍', prompt: 'giving a thumbs up', color: 'rgba(50, 205, 50, 0.3)' },
+    ],
+    "Fun": [
+        { name: 'Wink', emoji: '😉', prompt: 'winking one eye playfully', color: 'rgba(147, 112, 219, 0.3)' },
+        { name: 'Cool', emoji: '😎', prompt: 'wearing cool sunglasses', color: 'rgba(0, 255, 127, 0.3)' },
+        { name: 'Silly', emoji: '🤪', prompt: 'making a silly face, tongue out', color: 'rgba(255, 105, 180, 0.3)' },
+        { name: 'Nerd', emoji: '🤓', prompt: 'wearing nerd glasses', color: 'rgba(70, 130, 180, 0.3)' },
+        { name: 'Party', emoji: '🥳', prompt: 'party face with hat and blower', color: 'rgba(255, 215, 0, 0.3)' },
+        { name: 'Mind Blown', emoji: '🤯', prompt: 'exploding head gesture', color: 'rgba(255, 99, 71, 0.3)' },
+    ],
+    "Love": [
+        { name: 'In Love', emoji: '😍', prompt: 'eyes shaped like hearts', color: 'rgba(255, 20, 147, 0.3)' },
+        { name: 'Kiss', emoji: '😘', prompt: 'blowing a kiss', color: 'rgba(255, 182, 193, 0.3)' },
+        { name: 'Love You', emoji: '🥰', prompt: 'smiling with hearts around', color: 'rgba(255, 105, 180, 0.3)' },
+        { name: 'Heart Hands', emoji: '🫶', prompt: 'making heart shape with hands', color: 'rgba(250, 128, 114, 0.3)' },
+    ],
+    "Vibes": [
+        { name: 'Star', emoji: '🤩', prompt: 'starry eyes, excited', color: 'rgba(255, 215, 0, 0.3)' },
+        { name: 'Thinking', emoji: '🤔', prompt: 'thinking pose, hand on chin', color: 'rgba(210, 180, 140, 0.3)' },
+        { name: 'Sleepy', emoji: '😴', prompt: 'sleeping, zzz', color: 'rgba(176, 196, 222, 0.3)' },
+        { name: 'Money', emoji: '🤑', prompt: 'money signs in eyes', color: 'rgba(50, 205, 50, 0.3)' },
+    ]
+};
+
+interface GeneratedEmoji {
+    status: 'pending' | 'done' | 'error';
+    url?: string;
+    error?: string;
+}
 
 interface EmojiGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
-    photos: Album[]; // Gallery photos
-}
-
-type Step = 'select' | 'crop' | 'result';
-
-interface GeneratedEmoji {
-    id: string;
-    url: string;
-    style: EmojiStyle;
-    caption: string;
-    emojiIcon: string;
+    photos: Album[];
 }
 
 export const EmojiGeneratorModal: React.FC<EmojiGeneratorModalProps> = ({ isOpen, onClose, photos }) => {
-    const [step, setStep] = useState<Step>('select');
-    const [selectedPhoto, setSelectedPhoto] = useState<Album | null>(null);
+    // ... existing states ...
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [generatedEmojis, setGeneratedEmojis] = useState<Record<string, GeneratedEmoji>>({});
+    const [appState, setAppState] = useState<'upload' | 'preview' | 'generating' | 'results'>('upload');
 
-    // Crop Photo State
-    const [cropScale, setCropScale] = useState(1);
-    const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 });
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageRef = useRef<HTMLImageElement>(null);
+    // Gallery & Selection States
+    const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Generating State
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedEmojis, setGeneratedEmojis] = useState<GeneratedEmoji[]>([]);
-    const [aiSuggestion, setAiSuggestion] = useState<EmojiSuggestion | null>(null);
+    // Emoji Selection Logic
+    const [selectedCategory, setSelectedCategory] = useState<string>('Classic');
+    const [selectedEmotions, setSelectedEmotions] = useState<EmojiDef[]>([]);
 
-    // Reset when opened
-    useEffect(() => {
+    // Reset when modal opens
+    React.useEffect(() => {
         if (isOpen) {
-            setStep('select');
-            setSelectedPhoto(null);
-            setGeneratedEmojis([]);
-            setAiSuggestion(null);
+            setAppState('upload');
+            setUploadedImage(null);
+            setGeneratedEmojis({});
+            setShowGalleryPicker(false);
+            // Default select first 6 classics
+            setSelectedEmotions(EMOJI_CATEGORIES['Classic'].slice(0, 6));
         }
     }, [isOpen]);
 
-    const handleSelectPhoto = (photo: Album) => {
-        setSelectedPhoto(photo);
-        setStep('crop');
-        // Reset crop state
-        setCropScale(1);
-        setCropPosition({ x: 0, y: 0 });
-    };
-
-    const drawPreview = () => {
-        if (!canvasRef.current || !imageRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        // Clear
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Draw Image with transform
-        const img = imageRef.current;
-        const size = 300;
-        const centerX = size / 2;
-        const centerY = size / 2;
-
-        ctx.save();
-
-        // 1. Clip Circle
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
-        ctx.clip();
-
-        // 2. Draw Image
-        const imgRatio = img.width / img.height;
-        let drawWidth = size * cropScale;
-        let drawHeight = size * cropScale;
-
-        if (imgRatio > 1) {
-            drawHeight = drawWidth / imgRatio;
-        } else {
-            drawWidth = drawHeight * imgRatio;
-        }
-
-        ctx.translate(centerX + cropPosition.x, centerY + cropPosition.y);
-        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-
-        ctx.restore();
-    };
-
-    useEffect(() => {
-        if (step === 'crop' && imageRef.current) {
-            // Initial draw when image loads
-            drawPreview();
-        }
-    }, [step, cropScale, cropPosition, imageRef.current]);
-
-    const handleGenerate = async () => {
-        if (!selectedPhoto) return;
-        setIsGenerating(true);
-
-        try {
-            // 1. Get Cropped Image Base64
-            // We need to calculate crop params relative to original image
-            // For simplicity in this demo, we'll capture the canvas state
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const croppedBase64 = canvas.toDataURL('image/png');
-
-            // 2. Parallel Processing: Gemini AI Analysis + Style Filters
-            const promises: [Promise<EmojiSuggestion>, ...Promise<string>[]] = [
-                analyzeEmotionAndSuggestEmoji(croppedBase64),
-                // Filter styles
-                applyStyle(croppedBase64, 'original'),
-                applyStyle(croppedBase64, 'grayscale'),
-                applyStyle(croppedBase64, 'sepia'),
-                applyStyle(croppedBase64, 'pixel'),
-                applyStyle(croppedBase64, 'brightness'),
-                applyStyle(croppedBase64, 'contrast'),
-                applyStyle(croppedBase64, 'invert'),
-                applyStyle(croppedBase64, 'blur')
-            ];
-
-            const results = await Promise.all(promises);
-
-            const suggestion = results[0] as EmojiSuggestion;
-            setAiSuggestion(suggestion);
-
-            // 3. Create Result Objects
-            const styleNames: EmojiStyle[] = ['original', 'grayscale', 'sepia', 'pixel', 'brightness', 'contrast', 'invert', 'blur'];
-
-            const newEmojis: GeneratedEmoji[] = styleNames.map((style, index) => ({
-                id: `emoji_${Date.now()}_${index}`,
-                url: results[index + 1] as string,
-                style,
-                caption: suggestion.caption,
-                emojiIcon: suggestion.emoji
-            }));
-
-            setGeneratedEmojis(newEmojis);
-            setStep('result');
-
-        } catch (error) {
-            console.error("Failed to generate emoji:", error);
-            alert("이모지 생성 중 오류가 발생했습니다.");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    const handleDownload = (emoji: GeneratedEmoji) => {
-        const link = document.createElement('a');
-        link.href = emoji.url;
-        link.download = `my_emoji_${emoji.style}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Toggle Emoji Selection
+    const toggleEmotion = (emotion: EmojiDef) => {
+        setSelectedEmotions(prev => {
+            const exists = prev.find(e => e.name === emotion.name);
+            if (exists) {
+                return prev.filter(e => e.name !== emotion.name);
+            } else {
+                if (prev.length >= 6) return prev; // Max 6 for layout
+                return [...prev, emotion];
+            }
+        });
     };
 
     if (!isOpen) return null;
 
+    // ... (Handlers: handleFileUpload, handleGallerySelect, triggerFileUpload, handleReset - Keep same as before) ...
+    const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setUploadedImage(reader.result as string);
+                setAppState('preview');
+                setGeneratedEmojis({});
+                setShowGalleryPicker(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    const handleGallerySelect = (photoUrl: string) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            setUploadedImage(canvas.toDataURL('image/png'));
+            setAppState('preview');
+            setGeneratedEmojis({});
+            setShowGalleryPicker(false);
+        };
+        img.onerror = () => {
+            setUploadedImage(photoUrl);
+            setAppState('preview');
+            setShowGalleryPicker(false);
+        };
+        img.src = photoUrl;
+    };
+    const triggerFileUpload = () => fileInputRef.current?.click();
+    const handleReset = () => {
+        setUploadedImage(null);
+        setAppState('upload');
+        setGeneratedEmojis({});
+        setShowGalleryPicker(false);
+        setSelectedEmotions(EMOJI_CATEGORIES['Classic'].slice(0, 6));
+    };
+
+
+    // 3D Emojis Generation (Updated to use selectedEmotions)
+    const handleMakeEmojis = async () => {
+        if (!uploadedImage) return;
+
+        if (selectedEmotions.length === 0) {
+            alert("Please select at least one emoji!");
+            return;
+        }
+
+        setAppState('generating');
+
+        const initialEmojis: Record<string, GeneratedEmoji> = {};
+        selectedEmotions.forEach(emotion => {
+            initialEmojis[emotion.name] = { status: 'pending' };
+        });
+        setGeneratedEmojis(initialEmojis);
+
+        const queue = [...selectedEmotions];
+        const concurrencyLimit = 2;
+
+        const processEmotion = async (emotion: EmojiDef) => {
+            try {
+                const prompt = `Create a 3D sticker: ${emotion.prompt}`;
+                const resultUrl = await generateEmojiImage(
+                    uploadedImage,
+                    prompt,
+                    emotion.emoji,
+                    emotion.color
+                );
+
+                setGeneratedEmojis(prev => ({
+                    ...prev,
+                    [emotion.name]: { status: 'done', url: resultUrl },
+                }));
+            } catch (err) {
+                setGeneratedEmojis(prev => ({
+                    ...prev,
+                    [emotion.name]: { status: 'error', error: 'Failed' },
+                }));
+            }
+        };
+
+        const workers = Array(concurrencyLimit).fill(null).map(async () => {
+            while (queue.length > 0) {
+                const emotion = queue.shift();
+                if (emotion) await processEmotion(emotion);
+            }
+        });
+
+        await Promise.all(workers);
+        setAppState('results');
+    };
+
+    // Download Handler (Updated to iterate selectedEmotions)
+    const handleDownloadPack = async () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const cardW = 400, cardH = 480;
+        const padding = 40;
+        canvas.width = (cardW + padding) * 3 + padding;
+        canvas.height = (cardH + padding) * 2 + padding;
+
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const loadImage = (src: string) => new Promise<HTMLImageElement>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.src = src;
+        });
+
+        let idx = 0;
+        for (const em of selectedEmotions) {
+            const g = generatedEmojis[em.name];
+            if (g?.status === 'done' && g.url) {
+                const r = Math.floor(idx / 3);
+                const c = idx % 3;
+                const x = padding + c * (cardW + padding);
+                const y = padding + r * (cardH + padding);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 20;
+                ctx.fillRect(x, y, cardW, cardH);
+                ctx.shadowBlur = 0;
+
+                try {
+                    const img = await loadImage(g.url);
+                    ctx.drawImage(img, x + 20, y + 20, 360, 360);
+                } catch (e) { console.error(e); }
+
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 40px "Permanent Marker", cursive';
+                ctx.textAlign = 'center';
+                ctx.fillText(em.name, x + cardW / 2, y + 440);
+
+                idx++;
+            }
+        }
+
+        const link = document.createElement('a');
+        link.download = 'emoji-me-pack.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    };
+
+    // Download Single Emoji
+    const handleDownloadSingle = (url: string, name: string) => {
+        const link = document.createElement('a');
+        link.download = `emoji-${name}.png`;
+        link.href = url;
+        link.click();
+    };
+
+    // UI RENDER START ------------------------------------------
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl h-[90vh] md:h-[80vh] rounded-3xl overflow-hidden flex shadow-2xl flex-col md:flex-row">
+            {/* Close Button */}
+            <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-neutral-800 rounded-full hover:bg-neutral-700 transition z-50 group">
+                <X className="w-6 h-6 text-neutral-400 group-hover:text-white" />
+            </button>
 
-                {/* Sidebar Steps (Hidden on mobile) */}
-                <div className="w-64 bg-slate-800 border-r border-slate-700 p-6 flex-col hidden md:flex">
-                    <h2 className="text-xl font-black text-white mb-8 bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent"> Emoji Maker</h2>
-                    <div className="space-y-6">
-                        <div className={`flex items-center gap-3 ${step === 'select' ? 'text-white' : 'text-slate-500'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 'select' ? 'bg-violet-600' : 'bg-slate-700'}`}>1</div>
-                            <span className="font-bold">사진 선택</span>
-                        </div>
-                        <div className={`flex items-center gap-3 ${step === 'crop' ? 'text-white' : 'text-slate-500'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 'crop' ? 'bg-violet-600' : 'bg-slate-700'}`}>2</div>
-                            <span className="font-bold">영역 선택</span>
-                        </div>
-                        <div className={`flex items-center gap-3 ${step === 'result' ? 'text-white' : 'text-slate-500'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === 'result' ? 'bg-violet-600' : 'bg-slate-700'}`}>3</div>
-                            <span className="font-bold">이모지 생성</span>
-                        </div>
-                    </div>
-                </div>
+            <div className="w-full h-full flex flex-col items-center justify-center overflow-y-auto">
+                {/* Header */}
+                <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-6 z-10 flex-shrink-0">
+                    <h1 className="text-6xl sm:text-7xl font-caveat text-yellow-400 mb-2">Emoji Me</h1>
+                    <p className="text-xl font-permanent-marker text-neutral-300 tracking-wider">TURN YOUR FACE INTO 3D STICKERS</p>
+                </motion.div>
 
-                {/* Main Content */}
-                <div className="flex-1 flex flex-col bg-slate-900 relative h-full">
-                    <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full z-10 transition-colors">
-                        <X size={20} />
-                    </button>
+                <div className="w-full max-w-6xl px-4 z-10 flex flex-col items-center justify-center min-h-[500px]">
+                    <AnimatePresence mode="wait">
 
-                    {/* STEP 1: Select Photo */}
-                    {step === 'select' && (
-                        <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-                            <h3 className="text-2xl font-bold text-white mb-6">어떤 사진으로 만들까요?</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {photos.map(photo => (
-                                    <button
-                                        key={photo.id}
-                                        onClick={() => handleSelectPhoto(photo)}
-                                        className="aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-pink-500 transition-all group relative"
-                                    >
-                                        <img src={photo.coverUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <span className="font-bold text-white text-sm">선택하기</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP 2: Crop */}
-                    {step === 'crop' && selectedPhoto && (
-                        <div className="flex-1 flex flex-col p-6 md:p-8 items-center justify-center overflow-y-auto">
-                            <h3 className="text-xl font-bold text-white mb-4 text-center">이모지로 쓸 부분을 원 안에 맞춰주세요</h3>
-
-                            <div className="relative w-[280px] h-[280px] md:w-[300px] md:h-[300px] rounded-full overflow-hidden border-4 border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)] mb-8 bg-slate-800 flex-shrink-0">
-                                {/* Hidden source image for canvas to draw */}
-                                <img
-                                    ref={imageRef}
-                                    src={selectedPhoto.coverUrl}
-                                    className="hidden"
-                                    crossOrigin="anonymous"
-                                    onLoad={drawPreview}
-                                />
-                                <canvas
-                                    ref={canvasRef}
-                                    width={300}
-                                    height={300}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-
-                            {/* Controls */}
-                            <div className="w-full max-w-sm space-y-4 bg-slate-800 p-6 rounded-2xl">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 mb-2 block">확대 / 축소</label>
-                                    <input
-                                        type="range"
-                                        min="1" max="3" step="0.1"
-                                        value={cropScale}
-                                        onChange={e => setCropScale(parseFloat(e.target.value))}
-                                        className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-pink-500"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-4">
-                                    <button
-                                        onClick={() => setStep('select')}
-                                        className="py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors text-sm"
-                                    >
-                                        다시 선택
-                                    </button>
-                                    <button
-                                        onClick={handleGenerate}
-                                        className="py-3 bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm"
-                                    >
-                                        <Sparkles size={18} />
-                                        이모지 생성
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP 3: Loading / Result */}
-                    {step === 'result' && (
-                        <div className="flex-1 flex flex-col p-6 md:p-8 items-center justify-center overflow-y-auto h-full">
-                            {isGenerating ? (
-                                <div className="text-center">
-                                    <div className="w-20 h-20 mb-6 relative mx-auto">
-                                        <div className="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
-                                        <div className="absolute inset-0 border-4 border-t-pink-500 rounded-full animate-spin"></div>
-                                    </div>
-                                    <h3 className="text-2xl font-black text-white mb-2">AI가 분석 중입니다...</h3>
-                                    <p className="text-slate-400">표정을 읽고 이모지를 만들고 있어요.</p>
-                                </div>
-                            ) : (
-                                <div className="text-center w-full max-w-4xl h-full flex flex-col">
-                                    <div className="mb-6 flex-shrink-0">
-                                        <h3 className="text-2xl font-black text-white flex items-center justify-center gap-2">
-                                            <span className="text-3xl">{aiSuggestion?.emoji}</span>
-                                            <span>{aiSuggestion?.caption}</span>
-                                        </h3>
-                                        <p className="text-slate-400 mt-1 text-sm">AI가 추천하는 멘트와 다양한 스타일의 이모지입니다.</p>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 pr-2">
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                            {generatedEmojis.map((emoji) => (
-                                                <div key={emoji.id} className="relative aspect-square bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-700 hover:border-pink-500 transition-all group cursor-pointer overflow-hidden p-2">
-                                                    <div className="relative w-full h-full rounded-full overflow-hidden shadow-lg">
-                                                        <img src={emoji.url} alt={emoji.style} className="w-full h-full object-cover" />
-                                                    </div>
-
-                                                    <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
-                                                        {emoji.style}
-                                                    </div>
-
-                                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                                                        <button
-                                                            onClick={() => handleDownload(emoji)}
-                                                            className="p-2 bg-white text-slate-900 rounded-full hover:scale-110 transition-transform"
-                                                            title="다운로드"
-                                                        >
-                                                            <Download size={20} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                        {/* 1. UPLOAD UI (Keep Existing) */}
+                        {appState === 'upload' && (
+                            <motion.div key="upload" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative flex flex-col items-center w-full">
+                                {!showGalleryPicker ? (
+                                    <div onClick={() => setShowGalleryPicker(true)} className="cursor-pointer group block">
+                                        <div className="bg-white p-6 pb-20 shadow-2xl transform transition-transform duration-300 hover:rotate-2 hover:scale-105 w-[340px]">
+                                            <div className="bg-neutral-900 aspect-square flex flex-col items-center justify-center mb-4">
+                                                <ImageIcon className="w-16 h-16 text-neutral-600 mb-4" />
+                                                <span className="text-neutral-500 font-permanent-marker text-xl">Select Photo</span>
+                                            </div>
+                                            <div className="absolute bottom-8 left-0 w-full text-center">
+                                                <span className="text-black font-permanent-marker text-2xl">From Gallery</span>
+                                            </div>
                                         </div>
                                     </div>
+                                ) : (
+                                    <div className="w-full max-w-4xl bg-neutral-800/90 rounded-2xl p-6 border border-neutral-700 backdrop-blur-xl animate-in zoom-in-95">
+                                        {/* Gallery Picker Content (Keep largely same, simplified here for brevity but logic exists above) */}
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-2xl font-permanent-marker text-white">Select a Photo</h2>
+                                            <div className="flex gap-3">
+                                                <button onClick={triggerFileUpload} className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold"><Camera size={16} /> Upload PC</button>
+                                                <button onClick={() => setShowGalleryPicker(false)} className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"><X size={20} className="text-white" /></button>
+                                            </div>
+                                        </div>
+                                        {photos.length === 0 ? (
+                                            <div className="text-center py-20 text-neutral-500"><p>No photos.</p><button onClick={triggerFileUpload} className="text-yellow-400">Upload instead</button></div>
+                                        ) : (
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[50vh] overflow-y-auto pr-2 scrollbar-thin">
+                                                {photos.map(p => (
+                                                    <button key={p.id} onClick={() => handleGallerySelect(p.coverUrl)} className="aspect-square relative group overflow-hidden rounded-lg border-2 border-transparent hover:border-yellow-400">
+                                                        <img src={p.coverUrl} className="w-full h-full object-cover" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
 
-                                    <div className="flex gap-4 justify-center mt-6 flex-shrink-0">
+
+                        {/* 2. PREVIEW & SELECTION (New UI) */}
+                        {appState === 'preview' && uploadedImage && (
+                            <motion.div key="preview" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col lg:flex-row items-center lg:items-start gap-10 w-full max-w-5xl">
+
+                                {/* Left: Source Image */}
+                                <div className="flex flex-col items-center">
+                                    <div className="bg-white p-4 pb-16 shadow-2xl w-[280px] rotate-[-2deg]">
+                                        <img src={uploadedImage} className="w-full aspect-square object-cover bg-neutral-100" />
+                                        <div className="absolute bottom-6 left-0 w-full text-center">
+                                            <span className="text-black font-permanent-marker text-xl">My Face</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={handleReset} className="mt-4 text-neutral-400 hover:text-white font-permanent-marker text-sm underline">Change Photo</button>
+                                </div>
+
+                                {/* Right: Emoji Selection Panel */}
+                                <div className="flex-1 w-full bg-neutral-900/50 backdrop-blur-md rounded-2xl border border-neutral-700 p-6">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-permanent-marker text-white">Choose Emojis <span className="text-yellow-400 text-lg ml-2">({selectedEmotions.length}/6)</span></h2>
                                         <button
-                                            onClick={() => setStep('crop')}
-                                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl flex items-center gap-2 transition-colors text-sm"
+                                            onClick={handleMakeEmojis}
+                                            disabled={selectedEmotions.length === 0}
+                                            className="px-6 py-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold font-permanent-marker rounded shadow-lg transform active:scale-95 transition-all"
                                         >
-                                            <RefreshCw size={18} />
-                                            다시 만들기
+                                            GENERATE ✨
                                         </button>
                                     </div>
+
+                                    {/* Category Tabs */}
+                                    <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                                        {Object.keys(EMOJI_CATEGORIES).map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setSelectedCategory(cat)}
+                                                className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'}`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Emoji Grid */}
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                                        {EMOJI_CATEGORIES[selectedCategory].map(item => {
+                                            const isSelected = selectedEmotions.some(e => e.name === item.name);
+                                            return (
+                                                <button
+                                                    key={item.name}
+                                                    onClick={() => toggleEmotion(item)}
+                                                    className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all border-2 relative
+                                                        ${isSelected
+                                                            ? 'bg-yellow-400/20 border-yellow-400 scale-105'
+                                                            : 'bg-neutral-800 border-transparent hover:bg-neutral-700'
+                                                        }`}
+                                                >
+                                                    <span className="text-3xl mb-1">{item.emoji}</span>
+                                                    <span className={`text-[10px] font-bold ${isSelected ? 'text-yellow-400' : 'text-neutral-500'}`}>{item.name}</span>
+                                                    {isSelected && <div className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <p className="mt-4 text-xs text-neutral-500 text-center">Select up to 6 emojis to generate your sticker pack.</p>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            </motion.div>
+                        )}
+
+
+                        {/* 3. RESULTS (Updated to map selectedEmotions) */}
+                        {(appState === 'generating' || appState === 'results') && (
+                            <motion.div key="results" className="w-full flex flex-col items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center mb-12">
+                                    {selectedEmotions.map((emotion, index) => {
+                                        const item = generatedEmojis[emotion.name];
+                                        const rotateDeg = (index % 3 === 0 ? -2 : index % 3 === 1 ? 2 : -1) * (index > 2 ? -1 : 1);
+
+                                        return (
+                                            <motion.div
+                                                key={emotion.name}
+                                                initial={{ opacity: 0, y: 50, rotate: 0 }}
+                                                animate={{ opacity: 1, y: 0, rotate: rotateDeg }}
+                                                transition={{ delay: index * 0.15, type: 'spring' }}
+                                                className="bg-white p-5 pb-16 shadow-2xl w-[300px] hover:z-10 hover:scale-105 transition-transform duration-300 transform group relative"
+                                            >
+                                                <div className="bg-neutral-100 aspect-square w-full relative overflow-hidden flex items-center justify-center group-hover:bg-neutral-50 transition-colors">
+                                                    {item?.status === 'pending' && <div className="flex flex-col items-center text-neutral-400"><Loader2 className="w-8 h-8 animate-spin mb-2" /><span className="text-sm">Creating...</span></div>}
+                                                    {item?.status === 'error' && <div className="text-red-400">Failed</div>}
+                                                    {item?.status === 'done' && item.url && <img src={item.url} className="w-full h-full object-cover" />}
+
+                                                    {/* Individual Download Button Overlay */}
+                                                    {item?.status === 'done' && item.url && (
+                                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDownloadSingle(item.url!, emotion.name); }}
+                                                                className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full shadow-lg backdrop-blur-sm"
+                                                                title="Download Sticker"
+                                                            >
+                                                                <Download size={20} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="absolute bottom-5 left-0 w-full text-center">
+                                                    <span className="text-black font-permanent-marker text-2xl">{emotion.name}</span>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                                {appState === 'results' && (
+                                    <div className="flex gap-4">
+                                        <button onClick={handleReset} className="px-8 py-3 bg-transparent border-2 border-white rounded-none font-permanent-marker text-white text-lg hover:bg-white hover:text-black uppercase">Start Over</button>
+                                        <button onClick={handleDownloadPack} className="px-8 py-3 bg-yellow-400 border-2 border-yellow-400 rounded-none font-permanent-marker text-black text-lg hover:bg-yellow-300 uppercase shadow-lg flex items-center gap-2"><Download className="w-5 h-5" /> Download Pack</button>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+
+
+                    </AnimatePresence>
                 </div>
             </div>
         </div>

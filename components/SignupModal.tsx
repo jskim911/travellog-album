@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { UserStatus } from '../types';
 
@@ -72,6 +72,9 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                 lastLoginAt: serverTimestamp()
             });
 
+            // 승인 대기 상태이므로 로그아웃 처리 (자동 로그인 방지)
+            await signOut(auth);
+
             setSuccess(true);
 
             // Close modal after 2 seconds
@@ -82,7 +85,7 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                 setPassword('');
                 setConfirmPassword('');
                 onClose();
-            }, 2000);
+            }, 3000);
 
         } catch (err: any) {
             console.error('Signup error:', err);

@@ -93,7 +93,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
             )}
 
             {/* Image Container */}
-            <div className="relative aspect-square overflow-hidden bg-slate-100">
+            <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                 <img
                     src={album.coverUrl}
                     alt={album.title}
@@ -154,103 +154,30 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                 )}
             </div>
 
-            {/* Content */}
-            <div className="p-4">
-                {/* Title */}
-                {isEditingTitle ? (
-                    <div className="flex items-center gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
-                        <input
-                            type="text"
-                            value={editedTitle}
-                            onChange={(e) => setEditedTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveTitle();
-                                if (e.key === 'Escape') {
-                                    setEditedTitle(album.title);
-                                    setIsEditingTitle(false);
-                                }
-                            }}
-                            className="flex-1 px-3 py-1.5 text-sm font-bold bg-slate-50 border-2 border-violet-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-200"
-                            autoFocus
-                            disabled={isSaving}
-                        />
-                        <button
-                            onClick={handleSaveTitle}
-                            disabled={isSaving}
-                            className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all disabled:opacity-50"
-                        >
-                            <Check size={16} />
-                        </button>
-                        <button
-                            onClick={() => {
-                                setEditedTitle(album.title);
-                                setIsEditingTitle(false);
-                            }}
-                            disabled={isSaving}
-                            className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all disabled:opacity-50"
-                        >
-                            <XIcon size={16} />
-                        </button>
-                    </div>
-                ) : (
-                    <div className="flex items-start justify-between gap-2 mb-3 group/title">
-                        <h3 className="flex-1 text-sm font-bold text-slate-900 leading-tight line-clamp-2">
-                            {album.title}
-                        </h3>
-                        {!isSelectionMode && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsEditingTitle(true);
-                                }}
-                                className="opacity-0 group-hover/title:opacity-100 p-1.5 hover:bg-slate-100 text-slate-500 rounded-lg transition-all"
-                                title="제목 수정"
-                            >
-                                <Edit2 size={14} />
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {/* Description */}
-                {showMetadata && album.description && (
-                    <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">
-                        {album.description}
+            {/* Content - One Line Layout */}
+            <div className="px-3 py-2.5 bg-white">
+                <div className="flex items-center gap-2">
+                    {/* 1. Description/Title (Takes maximum space) */}
+                    <p className="text-sm font-bold text-slate-800 leading-none truncate flex-1 min-w-0" title={album.description || album.title}>
+                        {album.description || album.title || "제목 없음"}
                     </p>
-                )}
 
-                {/* Metadata */}
-                {showMetadata && (
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <MapPin size={14} className="text-violet-500 flex-shrink-0" />
-                            <span className="font-medium truncate">{album.location || '위치 정보 없음'}</span>
+                    {/* 2. Metadata (Location & Date on the right) */}
+                    {showMetadata && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500 flex-shrink-0">
+                            {album.location && (
+                                <div className="flex items-center gap-1">
+                                    <MapPin size={11} className="text-violet-500 flex-shrink-0" />
+                                    <span className="truncate max-w-[60px] sm:max-w-[80px] text-[11px] leading-none">{album.location}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-1 border-l border-slate-200 pl-2 ml-0.5">
+                                {/* Date (Text only to save space, or minimal icon) */}
+                                <span className="text-[10px] sm:text-[11px] text-slate-400 leading-none tracking-tight">{album.date}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Calendar size={14} className="text-blue-500 flex-shrink-0" />
-                            <span>{album.date}</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Footer Actions (Optional) */}
-                {!isSelectionMode && isHovered && (
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors">
-                                <Heart size={14} />
-                                <span>0</span>
-                            </button>
-                            <button className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-500 transition-colors">
-                                <MessageCircle size={14} />
-                                <span>0</span>
-                            </button>
-                        </div>
-                        <button className="text-xs text-slate-400 hover:text-slate-600 font-medium">
-                            자세히 보기
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

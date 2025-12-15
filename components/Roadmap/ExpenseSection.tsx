@@ -1,44 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Receipt, PieChart, TrendingUp, Trash2 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator } from 'lucide-react';
+import { collection, query, where, onSnapshot, deleteDoc, doc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../firebase';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { useAuth } from '../../src/hooks/useAuth';
-import { Expense, ExpenseCategory } from '../../types';
+import { Expense, ExpenseCategory, Itinerary } from '../../types';
 import { ExpenseInputModal } from './ExpenseInputModal';
 
 export const ExpenseSection: React.FC = () => {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const printRef = React.useRef<HTMLDivElement>(null);
+
+    // Trip Info for PDF
+    const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
+    const [participantCount, setParticipantCount] = useState(1);
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
     const [categoryStats, setCategoryStats] = useState<{ category: ExpenseCategory, amount: number, percentage: number }[]>([]);
 
     useEffect(() => {
-        if (!user) return;
+        if (authLoading) return;
 
-        const q = query(
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        // 1. Fetch Expenses
+        const qExpenses = query(
             collection(db, 'expenses'),
-            where('userId', '==', user.uid),
-            orderBy('date', 'desc'),
-            orderBy('createdAt', 'desc')
+            where('userId', '==', user.uid)
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribeExpenses = onSnapshot(qExpenses, (snapshot) => {
             const fetchedExpenses = snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data()
+                ...doc.data(),
+                date: doc.data().date?.toDate ? doc.data().date.toDate() : new Date(doc.data().date),
             })) as Expense[];
+
+            fetchedExpenses.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+                const createdA = a.createdAt ? (a.createdAt as any).seconds : 0;
+                const createdB = b.createdAt ? (b.createdAt as any).seconds : 0;
+                return createdB - createdA;
+            });
 
             setExpenses(fetchedExpenses);
             calculateStats(fetchedExpenses);
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching expenses:", error);
+            setLoading(false);
         });
 
-        return () => unsubscribe();
-    }, [user]);
+        // 2. Fetch Latest Itinerary (for Header Info)
+        const qTrip = query(
+            collection(db, 'itineraries'),
+            where('userId', '==', user.uid),
+            // Client-side sorting will happen in snapshot since we might not have index
+        );
+
+        const unsubscribeTrip = onSnapshot(qTrip, (snapshot) => {
+            if (!snapshot.empty) {
+                const trips = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    } as Itinerary;
+                });
+                // Sort client-side
+                trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+                setCurrentTrip(trips[0]);
+            }
+        });
+
+        return () => {
+            unsubscribeExpenses();
+            unsubscribeTrip();
+        };
+    }, [user, authLoading]);
 
     const calculateStats = (data: Expense[]) => {
         // 1. Total Amount (Note: Ignoring currency conversion for MVP)
@@ -103,143 +154,263 @@ export const ExpenseSection: React.FC = () => {
         return map[cat] || '기타';
     };
 
+    const handleDownloadPdf = async () => {
+        if (!printRef.current) return;
+
+        try {
+            const canvas = await html2canvas(printRef.current, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+            });
+            const imgData = canvas.toDataURL('image/png');
+
+            // A4 size: 210mm x 297mm
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth(); // 210
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`travel_expenses_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('PDF export failed:', error);
+            alert('PDF 저장 중 오류가 발생했습니다.');
+        }
+    };
+
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Dashboard Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Total Expense Card */}
-                <div className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                    <p className="text-emerald-100 text-sm font-medium mb-1 relative z-10">총 지출</p>
-                    <h3 className="text-3xl font-black relative z-10 tracking-tight">
-                        {formatCurrency(totalAmount)}
-                    </h3>
-                    <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
-                        <TrendingUp size={12} />
-                        <span>{expenses.length}건의 지출 내역</span>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Header / Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                {/* Participant Input */}
+                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
+                        <Users size={16} />
+                        <span>여행 인원</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setParticipantCount(prev => Math.max(1, prev - 1))}
+                            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 transition-colors"
+                        >
+                            -
+                        </button>
+                        <span className="w-8 text-center font-bold text-slate-800">{participantCount}</span>
+                        <button
+                            onClick={() => setParticipantCount(prev => prev + 1)}
+                            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 transition-colors"
+                        >
+                            +
+                        </button>
                     </div>
                 </div>
 
-                {/* Category Stats Card */}
-                <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                        <p className="text-slate-500 text-sm font-bold">카테고리별 지출</p>
-                        <PieChart size={18} className="text-slate-400" />
-                    </div>
-                    <div className="space-y-3 max-h-[140px] overflow-y-auto scrollbar-thin pr-1">
-                        {categoryStats.length > 0 ? categoryStats.map((stat) => (
-                            <div key={stat.category} className="space-y-1">
-                                <div className="flex justify-between text-xs sm:text-sm">
-                                    <span className="text-slate-600 font-medium flex items-center gap-1.5">
-                                        <span>{getCategoryIcon(stat.category)}</span>
-                                        {getCategoryName(stat.category)}
+                <button
+                    onClick={handleDownloadPdf}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md"
+                >
+                    <Download size={16} />
+                    PDF로 저장
+                </button>
+            </div>
+
+            <div ref={printRef} className="space-y-8 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+
+                {/* PDF Report Header */}
+                <div className="border-b-2 border-slate-100 pb-6 mb-8">
+                    {currentTrip ? (
+                        <>
+                            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+                                {currentTrip.tripName}
+                            </h1>
+                            <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6">
+                                <div className="flex items-center gap-1.5">
+                                    <Calendar size={16} />
+                                    <span>
+                                        {new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}
                                     </span>
-                                    <span className="font-bold text-slate-800">{Math.round(stat.percentage)}%</span>
                                 </div>
-                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                                        style={{ width: `${stat.percentage}%` }}
-                                    />
+                                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                <span>{currentTrip.routes.length} Days</span>
+                            </div>
+                        </>
+                    ) : (
+                        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-6 tracking-tight">
+                            여행 경비 리포트
+                        </h1>
+                    )}
+
+                    {/* Summary Box */}
+                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 gap-6 sm:gap-0">
+                            {/* Total */}
+                            <div className="text-center sm:text-left sm:pr-6">
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
+                                <p className="text-2xl font-black text-slate-900">{formatCurrency(totalAmount)}</p>
+                            </div>
+
+                            {/* Participant */}
+                            <div className="text-center sm:px-6 pt-4 sm:pt-0">
+                                <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-slate-200 mb-1">
+                                    <Users size={14} className="text-slate-400" />
+                                    <span className="text-sm font-bold text-slate-700">{participantCount}명</span>
                                 </div>
+                                <p className="text-xs text-slate-400">여행 참가 인원</p>
                             </div>
-                        )) : (
-                            <div className="h-full flex items-center justify-center">
-                                <p className="text-xs text-slate-400">데이터가 없습니다.</p>
+
+                            {/* Per Person */}
+                            <div className="text-center sm:text-right sm:pl-6 pt-4 sm:pt-0">
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center justify-center sm:justify-end gap-1">
+                                    <Calculator size={12} />
+                                    1인당 비용
+                                </p>
+                                <p className="text-2xl font-black text-violet-600">
+                                    {formatCurrency(totalAmount / participantCount)}
+                                </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900 mb-4 px-1 flex items-center gap-2">
+                    <PieChart size={18} className="text-slate-400" />
+                    지출 상세 분석
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Total Expense Card */}
+                    <div className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <p className="text-emerald-100 text-sm font-medium mb-1 relative z-10">총 지출</p>
+                        <h3 className="text-3xl font-black relative z-10 tracking-tight">
+                            {formatCurrency(totalAmount)}
+                        </h3>
+                        <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
+                            <TrendingUp size={12} />
+                            <span>{expenses.length}건의 지출 내역</span>
+                        </div>
+                    </div>
+
+                    {/* Category Stats Card */}
+                    <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-slate-500 text-sm font-bold">카테고리별 지출</p>
+                            <PieChart size={18} className="text-slate-400" />
+                        </div>
+                        <div className="space-y-3 max-h-[140px] overflow-y-auto scrollbar-thin pr-1">
+                            {categoryStats.length > 0 ? categoryStats.map((stat) => (
+                                <div key={stat.category} className="space-y-1">
+                                    <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                                            <span>{getCategoryIcon(stat.category)}</span>
+                                            {getCategoryName(stat.category)}
+                                        </span>
+                                        <span className="font-bold text-slate-800">{Math.round(stat.percentage)}%</span>
+                                    </div>
+                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                            style={{ width: `${stat.percentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="h-full flex items-center justify-center">
+                                    <p className="text-xs text-slate-400">데이터가 없습니다.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Action Card */}
+                    <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-colors">
+                        <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-1">
+                            <Receipt size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-800">새로운 지출 추가</h4>
+                            <p className="text-xs text-slate-500 mt-1">영수증 스캔으로 간편하게</p>
+                        </div>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform active:scale-95"
+                        >
+                            지출 입력하기
+                        </button>
+                    </div>
+                </div>
+
+                {/* Expense List */}
+                <div>
+                    <div className="flex justify-between items-center mb-4 px-2">
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            최근 지출 내역
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-normal">{expenses.length}</span>
+                        </h3>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+                        >
+                            <Plus size={16} />
+                            수동 입력
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        {loading ? (
+                            <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-3">
+                                <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+                                <span className="text-xs">데이터를 불러오는 중입니다...</span>
+                            </div>
+                        ) : expenses.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400">
+                                <Receipt size={48} className="mx-auto mb-3 opacity-20" />
+                                <p className="text-sm">아직 지출 내역이 없습니다.</p>
+                                <button
+                                    onClick={() => setIsModalOpen(true)}
+                                    className="mt-4 text-emerald-600 font-bold text-sm hover:underline"
+                                >
+                                    첫 지출 등록하기
+                                </button>
+                            </div>
+                        ) : (
+                            expenses.map((expense) => (
+                                <div key={expense.id} className="flex items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform">
+                                            {getCategoryIcon(expense.category)}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 text-sm">{expense.description}</h4>
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                                <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                                    {new Date(expense.date).toLocaleDateString()}
+                                                </span>
+                                                <span>•</span>
+                                                <span>{getCategoryName(expense.category)}</span>
+                                                {expense.isOCR && (
+                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded" title="AI 스캔됨">
+                                                        <Receipt size={10} />
+                                                        AI
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-black text-slate-900 text-lg">{formatCurrency(expense.amount, expense.currency)}</span>
+                                        <button
+                                            onClick={() => handleDelete(expense.id)}
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                                            title="삭제"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
 
-                {/* Action Card */}
-                <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-colors">
-                    <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-1">
-                        <Receipt size={24} />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-slate-800">새로운 지출 추가</h4>
-                        <p className="text-xs text-slate-500 mt-1">영수증 스캔으로 간편하게</p>
-                    </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform active:scale-95"
-                    >
-                        지출 입력하기
-                    </button>
-                </div>
-            </div>
-
-            {/* Expense List */}
-            <div>
-                <div className="flex justify-between items-center mb-4 px-2">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        최근 지출 내역
-                        <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-normal">{expenses.length}</span>
-                    </h3>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="text-sm font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
-                    >
-                        <Plus size={16} />
-                        수동 입력
-                    </button>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    {loading ? (
-                        <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-3">
-                            <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
-                            <span className="text-xs">데이터를 불러오는 중입니다...</span>
-                        </div>
-                    ) : expenses.length === 0 ? (
-                        <div className="p-12 text-center text-slate-400">
-                            <Receipt size={48} className="mx-auto mb-3 opacity-20" />
-                            <p className="text-sm">아직 지출 내역이 없습니다.</p>
-                            <button
-                                onClick={() => setIsModalOpen(true)}
-                                className="mt-4 text-emerald-600 font-bold text-sm hover:underline"
-                            >
-                                첫 지출 등록하기
-                            </button>
-                        </div>
-                    ) : (
-                        expenses.map((expense) => (
-                            <div key={expense.id} className="flex items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform">
-                                        {getCategoryIcon(expense.category)}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 text-sm">{expense.description}</h4>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                            <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                                                {new Date(expense.date).toLocaleDateString()}
-                                            </span>
-                                            <span>•</span>
-                                            <span>{getCategoryName(expense.category)}</span>
-                                            {expense.isOCR && (
-                                                <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded" title="AI 스캔됨">
-                                                    <Receipt size={10} />
-                                                    AI
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="font-black text-slate-900 text-lg">{formatCurrency(expense.amount, expense.currency)}</span>
-                                    <button
-                                        onClick={() => handleDelete(expense.id)}
-                                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                                        title="삭제"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
             </div>
 
             <ExpenseInputModal

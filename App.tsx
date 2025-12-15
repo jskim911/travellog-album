@@ -139,8 +139,10 @@ const App: React.FC = () => {
 
           // Check if user is admin (you can customize this logic)
           // For now, we'll check if email is in admin list
-          const adminEmails = ['admin@example.com', 'your-admin-email@gmail.com'];
-          setIsAdmin(adminEmails.includes(user.email || ''));
+          const adminEmails = ['admin@example.com', 'your-admin-email@gmail.com', 'jskim6748@gmail.com'];
+          const isAdminUser = adminEmails.includes(user.email || '');
+          setIsAdmin(isAdminUser);
+          console.log(`Current User: ${user.email}, IsAdmin: ${isAdminUser}`); // 디버깅용: 현재 사용자가 관리자인지 확인
         } else {
           setUserStatus(null);
         }
@@ -201,8 +203,8 @@ const App: React.FC = () => {
       {/* Header */}
       {/* Modern Header with Gradient */}
       <header className="sticky top-0 z-50 bg-gradient-to-r from-violet-50 via-white to-blue-50 border-b border-slate-200/60 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo & Brand */}
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="relative cursor-pointer" onClick={() => setCurrentPage('gallery')}>
@@ -220,26 +222,26 @@ const App: React.FC = () => {
 
               {/* Navigation Tabs (Desktop/Tablet) */}
               {user && userStatus === 'approved' && (
-                <div className="hidden md:flex ml-8 bg-slate-100/50 p-1 rounded-xl">
+                <div className="hidden md:flex ml-8 bg-slate-100/50 p-1.5 rounded-2xl">
                   <button
                     onClick={() => setCurrentPage('gallery')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentPage === 'gallery'
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-lg font-bold transition-all ${currentPage === 'gallery'
                       ? 'bg-white text-violet-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
-                    <ImageIcon size={16} />
-                    갤러리
+                    <ImageIcon size={20} />
+                    여행 갤러리 만들기
                   </button>
                   <button
                     onClick={() => setCurrentPage('roadmap')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentPage === 'roadmap'
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-lg font-bold transition-all ${currentPage === 'roadmap'
                       ? 'bg-white text-violet-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
-                    <Map size={16} />
-                    로드맵
+                    <Map size={20} />
+                    여행 계획 세우기
                   </button>
                 </div>
               )}
@@ -321,7 +323,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+      <main className="w-full px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
 
         {/* Pending Approval Banner */}
         {user && userStatus === 'pending' && (
@@ -373,7 +375,7 @@ const App: React.FC = () => {
 
             {/* Upload Section - Compact Version */}
             {userStatus === 'approved' && (
-              <section className="max-w-4xl mx-auto mb-8 sm:mb-12">
+              <section className="w-full mb-6 sm:mb-8">
                 <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} />
               </section>
             )}
@@ -470,6 +472,14 @@ const App: React.FC = () => {
                           <span className="hidden sm:inline">장소</span>
                         </button>
                       </div>
+
+                      <button
+                        onClick={() => setIsEmojiModalOpen(true)}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-bold rounded-full shadow-md transition-all flex items-center gap-1.5 sm:gap-2"
+                      >
+                        <Smile size={14} className="sm:w-4 sm:h-4" />
+                        <span>이모지 만들기</span>
+                      </button>
 
                       <button
                         onClick={toggleSelectionMode}
@@ -574,6 +584,8 @@ const App: React.FC = () => {
             isOpen={isAdminPanelOpen}
             onClose={() => setIsAdminPanelOpen(false)}
             currentUserUid={user?.uid || ''}
+            adminName={user?.displayName || '관리자'}
+            adminEmail={user?.email || ''}
           />
         )
       }
@@ -593,7 +605,7 @@ const App: React.FC = () => {
           <EmojiGeneratorModal
             isOpen={isEmojiModalOpen}
             onClose={() => setIsEmojiModalOpen(false)}
-            photos={albums.filter(a => selectedAlbumIds.has(a.id))}
+            photos={selectedAlbumIds.size > 0 ? albums.filter(a => selectedAlbumIds.has(a.id)) : albums}
           />
         )
       }

@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Download, X, Layout, Grid, List, BookOpen, Type, Sparkles, Save } from 'lucide-react';
 import { Album } from '../types';
-import { generateStoryboardPDF, downloadPDF } from '../src/utils/pdfGenerator';
+
+import { generatePDFFromElement, downloadPDF } from '../src/utils/pdfGenerator';
+import { convertImageToBase64 } from '../src/utils/imageUtils';
 import { generateCaptionSuggestions } from '../src/utils/gemini';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -26,6 +28,7 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [captions, setCaptions] = useState<Record<string, string>>({});
+    const [base64Images, setBase64Images] = useState<Record<string, string>>({});
     const previewRef = useRef<HTMLDivElement>(null);
 
     if (!isOpen) return null;
@@ -43,31 +46,138 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
         }
     }, [selectedAlbums]);
 
-    const handleExport = async () => {
+    // Pre-load images as Base64 for PDF generation
+    React.useEffect(() => {
+        const loadImages = async () => {
+            const promises = selectedAlbums.map(async (album) => {
+                // 이미 Base64가 있으면 스킵
+                if (base64Images[album.id]) return;
+
+                // 변환 시도
+                const base64 = await convertImageToBase64(album.coverUrl);
+                if (base64 !== album.coverUrl) {
+                    setBase64Images(prev => ({ ...prev, [album.id]: base64 }));
+                }
+            });
+            await Promise.all(promises);
+        };
+
+        if (isOpen) {
+            loadImages();
+        }
+    }, [selectedAlbums, isOpen]);
+
+    const handleExport = () => {
+        if (!previewRef.current) return;
+        setIsGenerating(true);
+
+        // 1. Create invisible iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.top = '0';
+        iframe.style.left = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document;
+        if (!doc) {
+            setIsGenerating(false);
+            return;
+        }
+
+        // 2. Copy all styles (Tailwind, Fonts, etc.)
+        const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+        styles.forEach(style => {
+            doc.head.appendChild(style.cloneNode(true));
+        });
+
+        // 3. Add Print-specific styles
+        const printStyle = doc.createElement('style');
+        printStyle.innerHTML = `
+            @media print {
+                @page { margin: 15mm; size: A4; } /* 모든 페이지에 15mm 여백 강제 */
+                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .break-inside-avoid { page-break-inside: avoid; break-inside: avoid; } /* 사진 짤림 방지 */
+            }
+            body { background: white; }
+            #print-container { 
+                width: 100% !important; 
+                height: auto !important; 
+                margin: 0 !important; 
+                padding: 0 !important; /* 페이지 마진이 있으므로 내부 패딩 제거 */
+                box-shadow: none !important; 
+                transform: none !important;
+            }
+        `;
+        doc.head.appendChild(printStyle);
+
+        // 4. Copy Content (Clone to avoid referencing live DOM)
+        const contentClone = previewRef.current.cloneNode(true) as HTMLElement;
+        contentClone.id = 'print-container';
+
+        // Remove inline styles that might conflict with print layout
+        contentClone.style.width = '100%';
+        contentClone.style.minHeight = 'auto';
+        contentClone.style.height = 'auto';
+        contentClone.style.transform = 'none';
+        contentClone.style.padding = '0';
+        contentClone.style.margin = '0';
+
+        doc.body.appendChild(contentClone);
+
+        // 5. Wait for images to load in Iframe, then Print
+        const images = doc.querySelectorAll('img');
+        const totalImages = images.length;
+        let loadedImages = 0;
+
+        const triggerPrint = () => {
+            // Short delay to ensure rendering
+            setTimeout(() => {
+                iframe.contentWindow?.focus();
+                iframe.contentWindow?.print();
+
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    setIsGenerating(false);
+                }, 1000);
+            }, 500);
+        };
+
+        if (totalImages === 0) {
+            triggerPrint();
+        } else {
+            const onImageLoad = () => {
+                loadedImages++;
+                if (loadedImages >= totalImages) triggerPrint();
+            };
+
+            images.forEach(img => {
+                if (img.complete) {
+                    onImageLoad();
+                } else {
+                    img.onload = onImageLoad;
+                    img.onerror = onImageLoad;
+                }
+            });
+        }
+    };
+
+    const handleDownloadPDF = async () => {
         if (!previewRef.current) return;
         setIsGenerating(true);
         try {
-            const photos = selectedAlbums.map(album => ({
-                url: album.coverUrl,
-                caption: captions[album.id],
-                location: album.location
-            }));
-
-            // 실제 DOM 요소를 사용하여 고품질 PDF 생성
-            // NOTE: generateStoryboardPDF uses a temporary DOM, but since we have a preview, 
-            // we could utilize generatePDFFromElement if we styled the preview exactly like A4.
-            // For now, using the logic in utils which rebuilds it for A4 consistency.
-            const blob = await generateStoryboardPDF(
-                title,
-                new Date().toLocaleDateString(),
-                photos,
-                layout
-            );
-
-            downloadPDF(blob, `storyboard_${Date.now()}.pdf`);
+            const blob = await generatePDFFromElement(previewRef.current, `${title}.pdf`, {
+                orientation: 'portrait',
+                format: 'a4'
+            });
+            downloadPDF(blob, `${title}.pdf`);
         } catch (error) {
-            console.error(error);
-            alert('PDF 생성에 실패했습니다.');
+            console.error('PDF Download failed', error);
+            alert('PDF 저장에 실패했습니다.');
         } finally {
             setIsGenerating(false);
         }
@@ -198,91 +308,109 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving || isGenerating}
-                                className="flex-1 py-4 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
-                            >
-                                {isSaving ? (
-                                    <div className="w-5 h-5 border-2 border-violet-600/30 border-t-violet-600 rounded-full animate-spin" />
-                                ) : (
-                                    <Save size={20} />
-                                )}
-                                <span>저장</span>
-                            </button>
 
-                            <button
-                                onClick={handleExport}
-                                disabled={isGenerating || isSaving}
-                                className="flex-[2] py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>생성 중...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Download size={20} />
-                                        <span>PDF 내보내기</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
                     </div>
                 </div>
 
-                {/* Main Area: Preview */}
-                <div className="flex-1 bg-slate-100 p-8 overflow-y-auto flex items-start justify-center">
-                    <div
-                        ref={previewRef}
-                        className="bg-white shadow-2xl transition-all duration-500 origin-top"
-                        style={{
-                            width: '794px', // A4 width at 96 DPI
-                            minHeight: '1123px', // A4 height at 96 DPI
-                            padding: '60px',
-                            transform: 'scale(0.85)', // Scale down to fit
-                        }}
-                    >
-                        {/* Live Preview Content */}
-                        <h1 className="text-4xl font-black text-slate-900 mb-4">{title}</h1>
-                        <p className="text-slate-500 mb-12 flex items-center gap-2">
-                            <Sparkles size={16} />
-                            {new Date().toLocaleDateString()}의 기록
-                        </p>
+                {/* Main Area Wrapper */}
+                <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
+                    {/* Scrollable Preview Area */}
+                    <div className="flex-1 overflow-y-auto p-8 flex items-start justify-center">
+                        <div
+                            ref={previewRef}
+                            className="bg-white shadow-2xl transition-all duration-500 origin-top"
+                            style={{
+                                width: '794px', // A4 width at 96 DPI
+                                minHeight: '1123px', // A4 height at 96 DPI
+                                padding: '60px',
+                                transform: 'scale(0.85)', // Scale down to fit
+                            }}
+                        >
+                            {/* Live Preview Content */}
+                            <h1 className="text-4xl font-black text-slate-900 mb-4">{title}</h1>
+                            <p className="text-slate-500 mb-12 flex items-center gap-2">
+                                <Sparkles size={16} />
+                                {new Date().toLocaleDateString()}의 기록
+                            </p>
 
-                        <div className={`
-              grid gap-6
-              ${layout === 'grid' ? 'grid-cols-2' : ''}
-              ${layout === 'timeline' ? 'grid-cols-1 max-w-2xl mx-auto' : ''}
-              ${layout === 'magazine' ? 'grid-cols-3' : ''}
-            `}>
-                            {selectedAlbums.map((album) => (
-                                <div key={album.id} className="break-inside-avoid mb-4">
-                                    <div className="relative group overflow-hidden rounded-xl bg-slate-100 mb-3">
-                                        <img
-                                            src={album.coverUrl}
-                                            alt={album.title}
-                                            className="w-full h-auto object-cover"
-                                        />
-                                    </div>
-                                    {(captions[album.id] || album.title) && (
-                                        <div className={`${layout === 'timeline' ? 'text-center' : ''}`}>
-                                            <p className="text-sm font-medium text-slate-800 leading-relaxed">
-                                                {captions[album.id] || album.title}
-                                            </p>
-                                            {layout === 'timeline' && (
-                                                <span className="inline-block mt-2 px-3 py-1 bg-slate-100 rounded-full text-xs text-slate-500 font-medium">
-                                                    {album.location || 'Unknown Location'}
-                                                </span>
-                                            )}
+                            <div className={`
+                grid gap-6
+                ${layout === 'grid' ? 'grid-cols-2' : ''}
+                ${layout === 'timeline' ? 'grid-cols-1 max-w-2xl mx-auto' : ''}
+                ${layout === 'magazine' ? 'grid-cols-3' : ''}
+                `}>
+                                {selectedAlbums.map((album) => (
+                                    <div key={album.id} className="break-inside-avoid mb-4">
+                                        <div className="relative group overflow-hidden rounded-xl bg-slate-100 mb-3">
+                                            <img
+                                                src={base64Images[album.id] || album.coverUrl}
+                                                alt={album.title}
+                                                className="w-full h-auto object-cover"
+                                            />
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+                                        {(captions[album.id] || album.title) && (
+                                            <div className={`${layout === 'timeline' ? 'text-center' : ''}`}>
+                                                <p className="text-sm font-medium text-slate-800 leading-relaxed">
+                                                    {captions[album.id] || album.title}
+                                                </p>
+                                                {layout === 'timeline' && (
+                                                    <span className="inline-block mt-2 px-3 py-1 bg-slate-100 rounded-full text-xs text-slate-500 font-medium">
+                                                        {album.location || 'Unknown Location'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Fixed Bottom Action Bar */}
+                    <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-end gap-3 z-10 shrink-0">
+                        <span className="text-sm text-slate-500 mr-auto pl-2">
+                            * PDF 저장 후 인쇄하시면 더 깔끔합니다.
+                        </span>
+
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || isGenerating}
+                            className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
+                        >
+                            {isSaving ? (
+                                <div className="w-4 h-4 border-2 border-violet-600/30 border-t-violet-600 rounded-full animate-spin" />
+                            ) : (
+                                <Save size={18} />
+                            )}
+                            <span>저장</span>
+                        </button>
+
+                        <button
+                            onClick={handleExport}
+                            disabled={isGenerating || isSaving}
+                            className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
+                        >
+                            <Layout size={18} />
+                            <span>인쇄 미리보기</span>
+                        </button>
+
+                        <button
+                            onClick={handleDownloadPDF}
+                            disabled={isGenerating || isSaving}
+                            className="px-8 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>생성 중...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Download size={18} />
+                                    <span>PDF 다운로드</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>

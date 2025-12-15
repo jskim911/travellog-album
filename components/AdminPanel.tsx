@@ -8,14 +8,18 @@ interface AdminPanelProps {
     isOpen: boolean;
     onClose: () => void;
     currentUserUid: string;
+    adminName?: string;
+    adminEmail?: string;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, currentUserUid }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, currentUserUid, adminName, adminEmail }) => {
     const [pendingUsers, setPendingUsers] = useState<User[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
     const [loading, setLoading] = useState(true);
     const [processingUid, setProcessingUid] = useState<string | null>(null);
+
+    // ... (useEffect hook remains same)
 
     useEffect(() => {
         if (!isOpen) return;
@@ -117,12 +121,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                 <div className="sticky top-0 bg-gradient-to-r from-violet-600 to-blue-600 text-white p-6 z-10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <Shield size={24} />
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold">관리자 패널</h2>
-                                <p className="text-sm text-white/80">사용자 승인 및 관리</p>
+                                <p className="text-white/90 mt-1">
+                                    <span className="font-bold text-lg">{adminName || '관리자'}</span>
+                                    <span className="text-white/80 ml-2 font-medium">({adminEmail})</span>
+                                </p>
                             </div>
                         </div>
                         <button
@@ -138,8 +145,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'pending'
-                                    ? 'bg-white text-violet-600'
-                                    : 'bg-white/20 text-white hover:bg-white/30'
+                                ? 'bg-white text-violet-600'
+                                : 'bg-white/20 text-white hover:bg-white/30'
                                 }`}
                         >
                             <div className="flex items-center gap-2">
@@ -150,8 +157,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                         <button
                             onClick={() => setActiveTab('all')}
                             className={`px-4 py-2 rounded-lg font-semibold transition-all ${activeTab === 'all'
-                                    ? 'bg-white text-violet-600'
-                                    : 'bg-white/20 text-white hover:bg-white/30'
+                                ? 'bg-white text-violet-600'
+                                : 'bg-white/20 text-white hover:bg-white/30'
                                 }`}
                         >
                             <div className="flex items-center gap-2">
@@ -236,10 +243,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span
                                                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${user.status === 'approved'
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : user.status === 'rejected'
-                                                                ? 'bg-red-100 text-red-700'
-                                                                : 'bg-yellow-100 text-yellow-700'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : user.status === 'rejected'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-yellow-100 text-yellow-700'
                                                         }`}
                                                 >
                                                     {user.status === 'approved' ? (
