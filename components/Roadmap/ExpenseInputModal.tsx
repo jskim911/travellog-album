@@ -26,6 +26,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
 
     const [isScanning, setIsScanning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAiSuccess, setIsAiSuccess] = useState(false);
 
     if (!isOpen) return null;
 
@@ -35,23 +36,29 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
 
         setReceiptFile(file);
         setIsScanning(true);
+        setIsAiSuccess(false); // Reset AI success status
 
         try {
             const data = await extractReceiptData(file);
+
+            // Check if valid data returned
+            if (!data.total && data.merchantName === "알 수 없음") {
+                throw new Error("데이터 추출 실패");
+            }
 
             // Auto-fill form
             setDescription(data.merchantName);
             setAmount(data.total.toString());
             setDate(data.date);
-            // Currency detection could be improved, simplistic fallback
             setCurrency(data.currency as Currency || 'KRW');
-
-            // Attempt to guess category based on merchant name (very basic)
-            // Ideally, Gemini should return category guess too.
+            setIsAiSuccess(true); // Mark AI as successful
 
         } catch (error) {
             console.error('Receipt scanning failed:', error);
-            alert('영수증을 읽을 수 없습니다. 직접 입력해주세요.');
+            // Don't alert aggressively, just let user valid
+            // But user wants to know why it failed.
+            alert('AI가 영수증 내용을 인식하지 못했습니다. 직접 내용을 입력해주세요.');
+            // Only file is attached
         } finally {
             setIsScanning(false);
         }
@@ -79,7 +86,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                 currency,
                 category,
                 receiptUrl,
-                isOCR: !!receiptFile,
+                isOCR: isAiSuccess, // Only mark as AI scanned if AI actually succeeded
                 createdAt: serverTimestamp(),
             };
 
@@ -140,7 +147,9 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                         ) : receiptFile ? (
                             <>
                                 <Check size={20} className="text-green-500" />
-                                <span className="text-green-600">영수증 스캔 완료 ({receiptFile.name})</span>
+                                <span className={isAiSuccess ? "text-green-600 font-bold" : "text-slate-600"}>
+                                    {isAiSuccess ? `AI 입력 완료 (${receiptFile.name})` : `영수증 첨부됨 (${receiptFile.name})`}
+                                </span>
                             </>
                         ) : (
                             <>

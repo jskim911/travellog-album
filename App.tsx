@@ -33,6 +33,7 @@ const App: React.FC = () => {
   // User status and admin check
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userData, setUserData] = useState<User | null>(null);
 
   // Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -134,17 +135,27 @@ const App: React.FC = () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
-          setUserStatus(userData.status);
+          const data = userDoc.data();
+          const fullUserData = {
+            ...data,
+            uid: userDoc.id,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            approvedAt: data.approvedAt?.toDate ? data.approvedAt.toDate() : undefined,
+            retentionPeriod: data.retentionPeriod || 30
+          } as User;
 
-          // Check if user is admin (you can customize this logic)
-          // For now, we'll check if email is in admin list
-          const adminEmails = ['admin@example.com', 'your-admin-email@gmail.com', 'jskim6748@gmail.com'];
+          setUserStatus(fullUserData.status);
+          setUserData(fullUserData);
+
+          // Check if user is admin
+          // Only specific emails have admin access
+          const adminEmails = ['jskim6748@gmail.com']; // Real admin email
           const isAdminUser = adminEmails.includes(user.email || '');
           setIsAdmin(isAdminUser);
           console.log(`Current User: ${user.email}, IsAdmin: ${isAdminUser}`); // 디버깅용: 현재 사용자가 관리자인지 확인
         } else {
           setUserStatus(null);
+          setUserData(null);
         }
       } catch (error) {
         console.error('Error checking user status:', error);
@@ -265,14 +276,28 @@ const App: React.FC = () => {
                 <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />
               ) : user ? (
                 <>
+                  {/* Data Retention Display */}
+                  {userStatus === 'approved' && userData && (
+                    <div className="hidden lg:flex flex-col items-end mr-2 px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] text-slate-500 font-medium">서비스 이용기간</span>
+                      <div className="flex items-center gap-1">
+                        <Clock size={12} className="text-violet-500" />
+                        <span className="text-sm font-bold text-slate-800">
+                          D-{Math.max(0, Math.ceil(((userData.createdAt instanceof Date ? userData.createdAt.getTime() : Date.now()) + (userData.retentionPeriod || 30) * 86400000 - Date.now()) / 86400000))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Admin Button */}
                   {isAdmin && (
                     <button
                       onClick={() => setIsAdminPanelOpen(true)}
-                      className="p-2 sm:p-2.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-all"
+                      className="flex items-center gap-1 p-2 sm:p-2.5 text-violet-600 hover:text-violet-700 hover:bg-violet-50 rounded-full transition-all"
                       title="관리자 패널"
                     >
                       <Shield size={18} className="sm:w-5 sm:h-5" />
+                      <span className="text-xs font-bold hidden sm:inline">관리자</span>
                     </button>
                   )}
 
@@ -458,7 +483,7 @@ const App: React.FC = () => {
                           title="날짜별"
                         >
                           <CalendarIcon size={14} className="inline mr-1" />
-                          <span className="hidden sm:inline">날짜</span>
+                          <span className="hidden sm:inline">날짜별</span>
                         </button>
                         <button
                           onClick={() => setViewMode('by-location')}
@@ -547,18 +572,49 @@ const App: React.FC = () => {
                 <p className="text-slate-500 mt-1">위의 업로드 섹션에서 첫 번째 사진을 올려보세요!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
-                {filteredAlbums.map((album) => (
-                  <PhotoCard
-                    key={album.id}
-                    album={album}
-                    onDelete={handleDeleteAlbum}
-                    isSelectionMode={isSelectionMode}
-                    isSelected={selectedAlbumIds.has(album.id)}
-                    onToggleSelect={toggleAlbumSelection}
-                  />
-                ))}
-              </div>
+              viewMode === 'by-date' ? (
+                // Date Grouping View
+                <div className="space-y-8">
+                  {Object.entries(
+                    filteredAlbums.reduce((groups, album) => {
+                      const dateKey = album.date; // Assuming album.date is string "YYYY. M. D." or similar
+                      if (!groups[dateKey]) groups[dateKey] = [];
+                      groups[dateKey].push(album);
+                      return groups;
+                    }, {} as Record<string, Album[]>)
+                  ).map(([date, groupAlbums]) => (
+                    <div key={date}>
+                      <h3 className="text-xl font-bold text-slate-800 mb-4 px-2">{date}</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
+                        {groupAlbums.map((album) => (
+                          <PhotoCard
+                            key={album.id}
+                            album={album}
+                            onDelete={handleDeleteAlbum}
+                            isSelectionMode={isSelectionMode}
+                            isSelected={selectedAlbumIds.has(album.id)}
+                            onToggleSelect={toggleAlbumSelection}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Default View (All or filtered by location, flattened)
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
+                  {filteredAlbums.map((album) => (
+                    <PhotoCard
+                      key={album.id}
+                      album={album}
+                      onDelete={handleDeleteAlbum}
+                      isSelectionMode={isSelectionMode}
+                      isSelected={selectedAlbumIds.has(album.id)}
+                      onToggleSelect={toggleAlbumSelection}
+                    />
+                  ))}
+                </div>
+              )
             )}
           </>
         )}

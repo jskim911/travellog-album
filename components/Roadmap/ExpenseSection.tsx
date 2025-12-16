@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator } from 'lucide-react';
+import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator, FileText } from 'lucide-react';
 import { collection, query, where, onSnapshot, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import html2canvas from 'html2canvas';
@@ -398,10 +398,23 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                                                 <span>•</span>
                                                 <span>{getCategoryName(expense.category)}</span>
                                                 {expense.isOCR && (
-                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded" title="AI 스캔됨">
+                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded" title="AI가 영수증 내용을 자동으로 분석했습니다">
                                                         <Receipt size={10} />
-                                                        AI
+                                                        AI 스캔됨
                                                     </span>
+                                                )}
+                                                {expense.receiptUrl && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            window.open(expense.receiptUrl, '_blank');
+                                                        }}
+                                                        className="flex items-center gap-0.5 text-violet-500 bg-violet-50 hover:bg-violet-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                                                        title="영수증 보기"
+                                                    >
+                                                        <FileText size={10} />
+                                                        영수증
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>

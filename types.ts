@@ -28,6 +28,7 @@ export interface User {
   approvedAt?: Date;
   approvedBy?: string;
   lastLoginAt?: Date;
+  retentionPeriod?: number; // Days, default 30
 }
 
 export interface PhotoMetadata {

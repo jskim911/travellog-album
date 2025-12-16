@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Calendar, DollarSign, Map, Receipt } from 'lucide-react';
+import { Calendar, DollarSign, Map, Receipt, FileText } from 'lucide-react';
 import { ItinerarySection } from './ItinerarySection';
 import { ExpenseSection } from './ExpenseSection';
+import { MaterialSection } from './MaterialSection';
 
 export const RoadmapPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses'>('itinerary');
+    const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
     return (
@@ -40,6 +41,16 @@ export const RoadmapPage: React.FC = () => {
                     <DollarSign size={18} />
                     비용 관리
                 </button>
+                <button
+                    onClick={() => setActiveTab('materials')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'materials'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                >
+                    <FileText size={18} />
+                    자료 보관함
+                </button>
             </div>
 
             {/* Content Area */}
@@ -49,8 +60,12 @@ export const RoadmapPage: React.FC = () => {
                         selectedTripId={selectedTripId}
                         onSelectTrip={setSelectedTripId}
                     />
-                ) : (
+                ) : activeTab === 'expenses' ? (
                     <ExpenseSection
+                        selectedTripId={selectedTripId}
+                    />
+                ) : (
+                    <MaterialSection
                         selectedTripId={selectedTripId}
                     />
                 )}

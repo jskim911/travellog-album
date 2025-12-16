@@ -38,7 +38,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                 uid: doc.id,
                 createdAt: doc.data().createdAt?.toDate() || new Date(),
                 approvedAt: doc.data().approvedAt?.toDate(),
-                lastLoginAt: doc.data().lastLoginAt?.toDate()
+                lastLoginAt: doc.data().lastLoginAt?.toDate(),
+                retentionPeriod: doc.data().retentionPeriod || 30
             })) as User[];
             setPendingUsers(users);
             setLoading(false);
@@ -52,7 +53,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                 uid: doc.id,
                 createdAt: doc.data().createdAt?.toDate() || new Date(),
                 approvedAt: doc.data().approvedAt?.toDate(),
-                lastLoginAt: doc.data().lastLoginAt?.toDate()
+                lastLoginAt: doc.data().lastLoginAt?.toDate(),
+                retentionPeriod: doc.data().retentionPeriod || 30
             })) as User[];
             setAllUsers(users);
         });
@@ -94,6 +96,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
             alert('사용자 거부 중 오류가 발생했습니다.');
         } finally {
             setProcessingUid(null);
+        }
+    };
+
+    const handleUpdateRetention = async (uid: string, days: number) => {
+        try {
+            await updateDoc(doc(db, 'users', uid), {
+                retentionPeriod: days
+            });
+            alert('승인되었습니다.');
+        } catch (error) {
+            console.error('Error updating retention:', error);
+            alert('데이터 보관 기간 수정 중 오류가 발생했습니다.');
         }
     };
 
@@ -266,6 +280,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, current
                                                 <span className="text-xs text-slate-400">
                                                     가입: {user.createdAt.toLocaleDateString('ko-KR')}
                                                 </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                                                    <Clock size={12} /> 보관기간:
+                                                </span>
+                                                <div className="flex bg-white rounded-lg border border-slate-200 p-0.5 shadow-sm">
+                                                    {[10, 20, 30, 60, 90].map(days => (
+                                                        <button
+                                                            key={days}
+                                                            onClick={() => handleUpdateRetention(user.uid, days)}
+                                                            className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${(user.retentionPeriod || 30) === days
+                                                                ? 'bg-violet-100 text-violet-700 shadow-sm'
+                                                                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                                                                }`}
+                                                        >
+                                                            {days}일
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
