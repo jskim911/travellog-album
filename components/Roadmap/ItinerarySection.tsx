@@ -403,7 +403,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
         return (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-black text-slate-900">내 여행 목록</h2>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">내 여행 목록</h2>
                     <button
                         onClick={() => setIsCreating(true)}
                         className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-full shadow-lg transition-all"
@@ -442,7 +442,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 </button>
                             </div>
                             <div className="pl-2 mt-4 flex items-center text-sm text-slate-500 font-medium">
-                                <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-600 group-hover:bg-violet-50 group-hover:text-violet-600 transition-colors">
+                                <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-600 group-hover:bg-violet-50 group-hover:text-violet-600 transition-colors text-xs">
                                     {trip.routes.length} Days
                                 </span>
                             </div>
@@ -516,10 +516,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             </div>
                         ) : (
                             <div className="group">
-                                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer" onClick={startEditingTripInfo} title="클릭하여 수정">
+                                <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer" onClick={startEditingTripInfo} title="클릭하여 수정">
                                     {currentTrip.tripName}
                                     <span className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-violet-500 transition-all">
-                                        <Edit2 size={18} />
+                                        <Edit2 size={16} />
                                     </span>
                                 </h2>
                                 <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
@@ -540,8 +540,8 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                         onClick={() => setShowVisualMap(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 rounded-xl font-bold transition-all shadow-sm"
                     >
-                        <MapIcon size={18} />
-                        <span className="hidden sm:inline">로드맵 보기</span>
+                        <MapIcon size={16} />
+                        <span className="hidden sm:inline text-xs">로드맵 보기</span>
                     </button>
                     <button
                         onClick={() => handleDeleteTrip(currentTrip)}
@@ -569,10 +569,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 `}
                             >
                                 <div>
-                                    <span className={`text-xs font-bold block mb-0.5 ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                    <span className={`text-[10px] font-bold block mb-0.5 ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
                                         Day {index + 1}
                                     </span>
-                                    <span className="font-bold text-sm">
+                                    <span className="font-bold text-xs">
                                         {getDayDate(index).split('(')[0]}
                                     </span>
                                 </div>
@@ -585,11 +585,11 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 {/* Right: Timeline Content */}
                 <div className="flex-1 bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200 min-h-[500px]">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-sm rounded-lg">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-xs rounded-lg">
                                 Day {selectedDayDayIndex + 1}
                             </span>
-                            <span className="text-base text-slate-500 font-normal">
+                            <span className="text-xs sm:text-base text-slate-500 font-normal">
                                 {getDayDate(selectedDayDayIndex)}
                             </span>
                         </h3>
@@ -673,7 +673,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                             {place.visitTime}
                                                         </div>
                                                     )}
-                                                    <h4 className="font-bold text-slate-800 text-lg">{place.name}</h4>
+                                                    <h4 className="font-bold text-slate-800 text-sm sm:text-lg">{place.name}</h4>
                                                     {place.address && (
                                                         <p className="text-sm text-slate-500 mt-1 whitespace-pre-wrap">{place.address}</p>
                                                     )}

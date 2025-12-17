@@ -155,25 +155,25 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
             </div>
 
             {/* Content - One Line Layout */}
-            <div className="px-3 py-2.5 bg-white">
+            <div className="px-2 py-2 bg-white">
                 <div className="flex items-center gap-2">
                     {/* 1. Description/Title (Takes maximum space) */}
-                    <p className="text-sm font-bold text-slate-800 leading-none truncate flex-1 min-w-0" title={album.description || album.title}>
+                    <p className="text-xs font-bold text-slate-800 leading-none truncate flex-1 min-w-0" title={album.description || album.title}>
                         {album.description || album.title || "제목 없음"}
                     </p>
 
                     {/* 2. Metadata (Location & Date on the right) */}
                     {showMetadata && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 flex-shrink-0">
                             {album.location && (
                                 <div className="flex items-center gap-1">
                                     <MapPin size={11} className="text-violet-500 flex-shrink-0" />
-                                    <span className="truncate max-w-[60px] sm:max-w-[80px] text-[11px] leading-none">{album.location}</span>
+                                    <span className="truncate max-w-[50px] sm:max-w-[80px] text-[10px] leading-none">{album.location}</span>
                                 </div>
                             )}
                             <div className="flex items-center gap-1 border-l border-slate-200 pl-2 ml-0.5">
                                 {/* Date (Text only to save space, or minimal icon) */}
-                                <span className="text-[10px] sm:text-[11px] text-slate-400 leading-none tracking-tight">{album.date}</span>
+                                <span className="text-[10px] font-medium text-slate-400 leading-none tracking-tight">{album.date}</span>
                             </div>
                         </div>
                     )}

@@ -18,18 +18,19 @@ import { useAuth } from './src/hooks/useAuth';
 
 const App: React.FC = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const [isSmartphoneMode, setIsSmartphoneMode] = useState(true);
 
   // Navigation State
   const [currentPage, setCurrentPage] = useState<'gallery' | 'roadmap'>('gallery');
 
   const [albums, setAlbums] = useState<Album[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isStoryboardOpen, setIsStoryboardOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+  const [isSmartphoneMode, setIsSmartphoneMode] = useState(false);
 
   // User status and admin check
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
@@ -354,7 +355,7 @@ const App: React.FC = () => {
             <div className="w-full flex">
               <button
                 onClick={() => setCurrentPage('gallery')}
-                className={`flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all relative ${currentPage === 'gallery' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
+                className={`flex-1 py-3 flex items-center justify-center gap-2 text-xs font-bold transition-all relative ${currentPage === 'gallery' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
                   }`}
               >
                 <ImageIcon size={18} />
@@ -365,7 +366,7 @@ const App: React.FC = () => {
               </button>
               <button
                 onClick={() => setCurrentPage('roadmap')}
-                className={`flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all relative ${currentPage === 'roadmap' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
+                className={`flex-1 py-3 flex items-center justify-center gap-2 text-xs font-bold transition-all relative ${currentPage === 'roadmap' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
                   }`}
               >
                 <Map size={18} />
@@ -552,8 +553,8 @@ const App: React.FC = () => {
                   ).map(([date, groupAlbums]) => (
                     <div key={date}>
                       <h3 className="text-xl font-bold text-slate-800 mb-4 px-2">{date}</h3>
-                      <div className={`grid ${isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'} gap-3 sm:gap-4 mx-auto`}>
-                        {groupAlbums.map((album) => (
+                      <div className={`grid ${isSmartphoneMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-3 lg:grid-cols-5'} gap-2 sm:gap-4 mx-auto`}>
+                        {(groupAlbums as Album[]).map((album) => (
                           <PhotoCard
                             key={album.id}
                             album={album}
@@ -569,7 +570,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 // Default View (All or filtered by location, flattened)
-                <div className={`grid ${isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'} gap-3 sm:gap-4 mx-auto`}>
+                <div className={`grid ${isSmartphoneMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-3 lg:grid-cols-5'} gap-2 sm:gap-4 mx-auto`}>
                   {filteredAlbums.map((album) => (
                     <PhotoCard
                       key={album.id}

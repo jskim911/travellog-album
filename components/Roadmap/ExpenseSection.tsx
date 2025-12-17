@@ -240,7 +240,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 <div className="border-b-2 border-slate-100 pb-6 mb-8">
                     {currentTrip ? (
                         <>
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+                            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
                                 {currentTrip.tripName}
                             </h1>
                             <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6 text-sm sm:text-base">
@@ -265,8 +265,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                         <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 gap-6 sm:gap-0">
                             {/* Total */}
                             <div className="text-center sm:text-left sm:pr-6">
-                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
-                                <p className="text-2xl font-black text-slate-900 break-words">{formatCurrency(totalAmount)}</p>
+                                <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
+                                <p className="text-xl sm:text-2xl font-black text-slate-900 break-words">{formatCurrency(totalAmount)}</p>
                             </div>
 
                             {/* Participant */}
@@ -284,7 +284,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                     <Calculator size={12} />
                                     1인당 비용
                                 </p>
-                                <p className="text-2xl font-black text-violet-600 break-words">
+                                <p className="text-xl sm:text-2xl font-black text-violet-600 break-words">
                                     {formatCurrency(totalAmount / participantCount)}
                                 </p>
                             </div>
@@ -364,9 +364,9 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 {/* Expense List */}
                 <div>
                     <div className="flex justify-between items-center mb-4 px-2">
-                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                             {selectedTripId ? '이 여행의 지출 내역' : '전체 지출 내역'}
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-xs font-normal">{expenses.length}</span>
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] sm:text-xs font-normal">{expenses.length}</span>
                         </h3>
                         <button
                             onClick={() => setIsModalOpen(true)}
@@ -404,7 +404,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                             {getCategoryIcon(expense.category)}
                                         </div>
                                         <div className="min-w-0">
-                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-xs mb-0.5' : 'text-sm'} line-clamp-1 break-all`}>{expense.description}</h4>
+                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-[11px] mb-0.5' : 'text-sm'} line-clamp-1 break-all`}>{expense.description}</h4>
                                             <div className={`flex items-center ${isCompact ? 'gap-1 text-[10px]' : 'gap-1.5 sm:gap-2 text-[11px] sm:text-xs'} text-slate-500 flex-wrap`}>
                                                 <span className="font-medium text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded whitespace-nowrap">
                                                     {new Date(expense.date).toLocaleDateString()}
@@ -416,7 +416,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                         </div>
                                     </div>
                                     <div className={`flex items-center justify-between ${isCompact ? 'pl-[2.8rem] -mt-1 w-full' : 'sm:justify-end w-full sm:w-auto pl-[3.25rem]'}`}>
-                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-sm' : 'text-base sm:text-xl'} truncate text-right mr-3`}>
+                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-sm' : 'text-sm sm:text-xl'} truncate text-right mr-3`}>
                                             {formatCurrency(expense.amount, expense.currency)}
                                         </span>
                                         <div className="flex items-center gap-1">
@@ -448,6 +448,6 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 tripId={selectedTripId}
                 expenseToEdit={editingExpense}
             />
-        </div>
+        </div >
     );
 };
