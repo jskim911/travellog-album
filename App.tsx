@@ -82,6 +82,19 @@ const App: React.FC = () => {
     }
   };
 
+  // Responsive Check
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmartphoneMode(window.innerWidth < 640);
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Download selected photos
   const handleDownloadSelected = async () => {
     if (selectedAlbumIds.size === 0) return;
@@ -232,18 +245,6 @@ const App: React.FC = () => {
                 </h1>
                 <p className="text-[10px] sm:text-xs text-slate-500 font-medium -mt-0.5">여행의 모든 순간</p>
               </div>
-
-              {/* Smart Mode Toggle */}
-              <button
-                onClick={() => setIsSmartphoneMode(!isSmartphoneMode)}
-                className={`ml-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all border ${isSmartphoneMode
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                  }`}
-              >
-                {isSmartphoneMode ? <Smartphone size={14} /> : <Monitor size={14} />}
-                <span className="hidden sm:inline">{isSmartphoneMode ? '스마트폰' : 'PC'}</span>
-              </button>
 
               {/* Navigation Tabs (Desktop/Tablet) */}
               {user && userStatus === 'approved' && (

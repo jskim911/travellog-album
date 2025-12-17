@@ -225,13 +225,15 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                     </div>
                 </div>
 
-                <button
-                    onClick={handleDownloadPdf}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md"
-                >
-                    <Download size={16} />
-                    PDF로 저장
-                </button>
+                {!isCompact && (
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md"
+                    >
+                        <Download size={16} />
+                        PDF로 저장
+                    </button>
+                )}
             </div>
 
             <div ref={printRef} className="space-y-8 p-4 sm:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
@@ -262,32 +264,46 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
 
                     {/* Summary Box */}
                     <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 gap-6 sm:gap-0">
-                            {/* Total */}
-                            <div className={`text-center ${isCompact ? 'sm:text-left sm:pr-0' : 'sm:text-left sm:pr-6'}`}>
-                                <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
-                                <p className={`${isCompact ? 'text-xl' : 'text-3xl'} font-black text-slate-900 break-words`}>{formatCurrency(totalAmount)}</p>
-                            </div>
-
-                            {/* Participant */}
-                            <div className="text-center sm:px-6 pt-4 sm:pt-0">
-                                <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-slate-200 mb-1">
-                                    <Users size={14} className="text-slate-400" />
-                                    <span className="text-sm font-bold text-slate-700">{participantCount}명</span>
+                        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                            {isCompact ? (
+                                <div className="text-center">
+                                    <p className="text-lg font-black text-slate-800">
+                                        <span className="text-slate-900">{formatCurrency(totalAmount)}</span>
+                                        <span className="text-sm text-slate-500 mx-1">(총)</span>
+                                        <span className="text-slate-300 mx-2">|</span>
+                                        <span className="text-violet-600">{formatCurrency(totalAmount / participantCount)}</span>
+                                        <span className="text-sm text-slate-500 mx-1">(인)</span>
+                                    </p>
                                 </div>
-                                <p className="text-xs text-slate-400">여행 참가 인원</p>
-                            </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 gap-6 sm:gap-0">
+                                    {/* Total */}
+                                    <div className="text-center sm:text-left sm:pr-6">
+                                        <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
+                                        <p className="text-3xl font-black text-slate-900 break-words">{formatCurrency(totalAmount)}</p>
+                                    </div>
 
-                            {/* Per Person */}
-                            <div className="text-center sm:text-right sm:pl-6 pt-4 sm:pt-0">
-                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center justify-center sm:justify-end gap-1">
-                                    <Calculator size={12} />
-                                    1인당 비용
-                                </p>
-                                <p className={`${isCompact ? 'text-xl' : 'text-3xl'} font-black text-violet-600 break-words`}>
-                                    {formatCurrency(totalAmount / participantCount)}
-                                </p>
-                            </div>
+                                    {/* Participant */}
+                                    <div className="text-center sm:px-6 pt-4 sm:pt-0">
+                                        <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-slate-200 mb-1">
+                                            <Users size={14} className="text-slate-400" />
+                                            <span className="text-sm font-bold text-slate-700">{participantCount}명</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400">여행 참가 인원</p>
+                                    </div>
+
+                                    {/* Per Person */}
+                                    <div className="text-center sm:text-right sm:pl-6 pt-4 sm:pt-0">
+                                        <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center justify-center sm:justify-end gap-1">
+                                            <Calculator size={12} />
+                                            1인당 비용
+                                        </p>
+                                        <p className="text-3xl font-black text-violet-600 break-words">
+                                            {formatCurrency(totalAmount / participantCount)}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
