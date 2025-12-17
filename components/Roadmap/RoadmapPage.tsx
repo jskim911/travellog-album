@@ -1,16 +1,76 @@
-import React, { useState } from 'react';
-import { Calendar, DollarSign, Map, Receipt, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, DollarSign, Map, FileText } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { useAuth } from '../../src/hooks/useAuth';
+import { Itinerary } from '../../types';
 import { ItinerarySection } from './ItinerarySection';
 import { ExpenseSection } from './ExpenseSection';
 import { MaterialSection } from './MaterialSection';
 
 interface RoadmapPageProps {
     isSmartphoneMode?: boolean;
+    selectedTripId: string | null;
+    onSelectTrip: (id: string | null) => void;
 }
 
-export const RoadmapPage: React.FC<RoadmapPageProps> = ({ isSmartphoneMode = false }) => {
+export const RoadmapPage: React.FC<RoadmapPageProps> = ({
+    isSmartphoneMode = false,
+    selectedTripId,
+    onSelectTrip
+}) => {
+    const { user, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
-    const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+    const [allTrips, setAllTrips] = useState<Itinerary[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch All Itineraries & Auto-select Logic
+    useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+
+        const q = query(
+            collection(db, 'itineraries'),
+            where('userId', '==', user.uid)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const trips = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                    } as Itinerary;
+                });
+
+                // Sort by startDate descending (newest first)
+                trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+                setAllTrips(trips);
+
+                // AUTO SELECT LOGIC:
+                // If no trip is selected, automatically select the most recent one.
+                if (!selectedTripId && trips.length > 0) {
+                    onSelectTrip(trips[0].id);
+                }
+            } else {
+                setAllTrips([]);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching itineraries:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user, authLoading, selectedTripId, onSelectTrip]);
+
+    const selectedTrip = (allTrips && Array.isArray(allTrips)) ? allTrips.find(t => t.id === selectedTripId) || null : null;
 
     return (
         <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? '' : ''}`}>
@@ -59,22 +119,33 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ isSmartphoneMode = fal
 
             {/* Content Area */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm min-h-[600px] p-6 sm:p-8">
-                {activeTab === 'itinerary' ? (
-                    <ItinerarySection
-                        selectedTripId={selectedTripId}
-                        onSelectTrip={setSelectedTripId}
-                        isSmartphoneMode={isSmartphoneMode}
-                    />
-                ) : activeTab === 'expenses' ? (
-                    <ExpenseSection
-                        selectedTripId={selectedTripId}
-                        isCompact={isSmartphoneMode}
-                    />
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                    </div>
                 ) : (
-                    <MaterialSection
-                        selectedTripId={selectedTripId}
-                        isSmartphoneMode={isSmartphoneMode}
-                    />
+                    <>
+                        {activeTab === 'itinerary' ? (
+                            <ItinerarySection
+                                selectedTripId={selectedTripId}
+                                selectedTrip={selectedTrip}
+                                onSelectTrip={onSelectTrip}
+                                isSmartphoneMode={isSmartphoneMode}
+                                allTrips={allTrips}
+                            />
+                        ) : activeTab === 'expenses' ? (
+                            <ExpenseSection
+                                selectedTripId={selectedTripId}
+                                selectedTrip={selectedTrip}
+                                isCompact={isSmartphoneMode}
+                            />
+                        ) : (
+                            <MaterialSection
+                                selectedTripId={selectedTripId}
+                                isSmartphoneMode={isSmartphoneMode}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </div>

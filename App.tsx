@@ -82,6 +82,9 @@ const App: React.FC = () => {
     }
   };
 
+  // Trip Selection State (Lifted from RoadmapPage)
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+
   // Responsive Check
   useEffect(() => {
     const handleResize = () => {
@@ -401,7 +404,11 @@ const App: React.FC = () => {
         )}
 
         {currentPage === 'roadmap' && userStatus === 'approved' ? (
-          <RoadmapPage isSmartphoneMode={isSmartphoneMode} />
+          <RoadmapPage
+            isSmartphoneMode={isSmartphoneMode}
+            selectedTripId={selectedTripId}
+            onSelectTrip={setSelectedTripId}
+          />
         ) : (
           <>
             {/* Compact Upload Button - Only show when approved */}

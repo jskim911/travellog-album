@@ -10,21 +10,20 @@ interface ItinerarySectionProps {
     selectedTripId: string | null;
     onSelectTrip: (tripId: string | null) => void;
     isSmartphoneMode?: boolean;
+    allTrips: Itinerary[];
+    selectedTrip: Itinerary | null;
 }
 
-export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip, isSmartphoneMode = false }) => {
-    const { user, loading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
+export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip, isSmartphoneMode = false, allTrips = [], selectedTrip }) => {
+    const { user } = useAuth();
 
-    // Data State
-    const [allTrips, setAllTrips] = useState<Itinerary[]>([]);
 
     // View State
     const [isCreating, setIsCreating] = useState(false);
     const [selectedDayDayIndex, setSelectedDayIndex] = useState(0);
 
     // Derived State
-    const currentTrip = allTrips.find(t => t.id === selectedTripId) || null;
+    const currentTrip = selectedTrip;
     const viewMode = isCreating ? 'create' : (selectedTripId ? 'detail' : 'list');
 
     // New Trip Form State
@@ -58,45 +57,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     const [editPlaceMemo, setEditPlaceMemo] = useState('');
 
     // Fetch Logic
-    useEffect(() => {
-        if (authLoading) return;
-
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        const q = query(
-            collection(db, 'itineraries'),
-            where('userId', '==', user.uid)
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const trips = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        ...data,
-                        startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                        endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                    } as Itinerary;
-                });
-
-                // Sort in memory (descending by startDate)
-                trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
-                setAllTrips(trips);
-            } else {
-                setAllTrips([]);
-            }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching itinerary:", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [user, authLoading]);
+    // Fetch Logic Removed (Lifted to Parent)
 
     // Reset day index when trip changes
     useEffect(() => {
@@ -334,7 +295,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
         return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+
 
     // VIEW: CREATE MODE
     if (viewMode === 'create') {

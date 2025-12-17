@@ -10,10 +10,11 @@ import { ExpenseInputModal } from './ExpenseInputModal';
 
 interface ExpenseSectionProps {
     selectedTripId: string | null;
+    selectedTrip: Itinerary | null;
     isCompact?: boolean;
 }
 
-export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, isCompact = false }) => {
+export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, selectedTrip, isCompact = false }) => {
     const { user, loading: authLoading } = useAuth();
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]); // Filtered
@@ -23,8 +24,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     const printRef = React.useRef<HTMLDivElement>(null);
 
     // Trip Info for PDF and Header
-    const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
-    const participantCount = currentTrip?.participantCount ? Number(currentTrip.participantCount) : 1;
+    const participantCount = selectedTrip?.participantCount ? Number(selectedTrip.participantCount) : 1;
+    const currentTrip = selectedTrip; // Alias for compatibility with existing code
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
@@ -81,31 +82,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
         }
     }, [selectedTripId, allExpenses]);
 
-    // 3. Subscribe to Trip Info (Real-time sync)
-    useEffect(() => {
-        if (!selectedTripId) {
-            setCurrentTrip(null);
-            return;
-        }
-
-        const unsub = onSnapshot(doc(db, 'itineraries', selectedTripId), (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setCurrentTrip({
-                    id: docSnap.id,
-                    ...data,
-                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                } as Itinerary);
-            } else {
-                setCurrentTrip(null);
-            }
-        }, (error) => {
-            console.error("Error subscribing to trip:", error);
-        });
-
-        return () => unsub();
-    }, [selectedTripId]);
+    // 3. Subscribe logic removed (Props used instead)
 
     const calculateStats = (data: Expense[]) => {
         const total = data.reduce((sum, item) => sum + item.amount, 0);
