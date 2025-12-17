@@ -56,13 +56,9 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
                 createdAt: doc.data().createdAt?.toDate() || new Date()
             })) as Material[];
 
-            // Client filter
-            const filtered = selectedTripId
-                ? items.filter(i => i.tripId === selectedTripId)
-                : items; // Or items.filter(i => !i.tripId) ? Let's show all if no trip selected?
-            // "Trip Planning Menu" -> usually users select a trip first.
-            // But if they haven't, showing all or "Unassigned" is okay.
-            // Let's show filtered.
+            // Client filter - Show ALL materials to ensure data visibility as requested
+            // We kept selectedTripId for Upload context, but for View we show everything.
+            const filtered = items;
 
             // Sort by date desc
             filtered.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -135,10 +131,10 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
             <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <div>
                     <h2 className={`${isSmartphoneMode ? 'text-base' : 'text-xl'} font-bold text-slate-800`}>
-                        {selectedTripId ? '여행 자료' : '자료 보관함'}
+                        자료 보관함
                     </h2>
                     <p className={`${isSmartphoneMode ? 'text-[10px]' : 'text-sm'} text-slate-500 line-clamp-1`}>
-                        여행 관련 자료를 관리하세요.
+                        모든 여행 자료를 한곳에서 관리하세요.
                     </p>
                 </div>
                 <div>
