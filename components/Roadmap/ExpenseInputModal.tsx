@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Camera, Calendar, DollarSign, Tag, FileText, Check, Loader2 } from 'lucide-react';
 import { Expense, ExpenseCategory, Currency } from '../../types';
 import { extractReceiptData } from '../../src/utils/gemini';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -11,9 +11,10 @@ interface ExpenseInputModalProps {
     isOpen: boolean;
     onClose: () => void;
     tripId: string | null;
+    expenseToEdit?: Expense | null;
 }
 
-export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, onClose, tripId }) => {
+export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, onClose, tripId, expenseToEdit }) => {
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -23,10 +24,33 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
     const [currency, setCurrency] = useState<Currency>('KRW');
     const [category, setCategory] = useState<ExpenseCategory>('food');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
+    const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
 
     const [isScanning, setIsScanning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAiSuccess, setIsAiSuccess] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && expenseToEdit) {
+            setDate(new Date(expenseToEdit.date).toISOString().split('T')[0]);
+            setDescription(expenseToEdit.description);
+            setAmount(expenseToEdit.amount.toString());
+            setCurrency(expenseToEdit.currency);
+            setCategory(expenseToEdit.category);
+            setExistingReceiptUrl(expenseToEdit.receiptUrl || null);
+            setIsAiSuccess(expenseToEdit.isOCR || false);
+        } else if (isOpen && !expenseToEdit) {
+            // Reset for new entry
+            setDate(new Date().toISOString().split('T')[0]);
+            setDescription('');
+            setAmount('');
+            setCurrency('KRW');
+            setCategory('food');
+            setReceiptFile(null);
+            setExistingReceiptUrl(null);
+            setIsAiSuccess(false);
+        }
+    }, [isOpen, expenseToEdit]);
 
     if (!isOpen) return null;
 
@@ -70,7 +94,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
         setIsSubmitting(true);
 
         try {
-            let receiptUrl = '';
+            let receiptUrl = existingReceiptUrl || '';
             if (receiptFile) {
                 const storageRef = ref(storage, `receipts/${user.uid}/${Date.now()}_${receiptFile.name}`);
                 const snapshot = await uploadBytes(storageRef, receiptFile);
@@ -80,22 +104,28 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
             const expenseData = {
                 userId: user.uid,
                 itineraryId: tripId,
-                date: new Date(date), // Firestore Timestamp would be better but Date is okay with converter
+                date: new Date(date),
                 description,
                 amount: Number(amount),
                 currency,
                 category,
                 receiptUrl,
-                isOCR: isAiSuccess, // Only mark as AI scanned if AI actually succeeded
-                createdAt: serverTimestamp(),
+                isOCR: isAiSuccess,
             };
 
-            await addDoc(collection(db, 'expenses'), expenseData);
+            if (expenseToEdit) {
+                await updateDoc(doc(db, 'expenses', expenseToEdit.id), {
+                    ...expenseData,
+                    updatedAt: serverTimestamp()
+                });
+            } else {
+                await addDoc(collection(db, 'expenses'), {
+                    ...expenseData,
+                    createdAt: serverTimestamp(),
+                });
+            }
+
             onClose();
-            // Reset form
-            setDescription('');
-            setAmount('');
-            setReceiptFile(null);
         } catch (error) {
             console.error('Error saving expense:', error);
             alert('저장에 실패했습니다.');
@@ -119,7 +149,9 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
             <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                    <h2 className="text-xl font-bold text-slate-900">비용 추가</h2>
+                    <h2 className="text-xl font-bold text-slate-900">
+                        {expenseToEdit ? '지출 내역 수정' : '비용 추가'}
+                    </h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                         <X size={20} className="text-slate-500" />
                     </button>
@@ -144,11 +176,14 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                 <Loader2 size={20} className="animate-spin" />
                                 <span>영수증 분석 중...</span>
                             </>
-                        ) : receiptFile ? (
+                        ) : receiptFile || existingReceiptUrl ? (
                             <>
                                 <Check size={20} className="text-green-500" />
                                 <span className={isAiSuccess ? "text-green-600 font-bold" : "text-slate-600"}>
-                                    {isAiSuccess ? `AI 입력 완료 (${receiptFile.name})` : `영수증 첨부됨 (${receiptFile.name})`}
+                                    {receiptFile
+                                        ? (isAiSuccess ? `AI 입력 완료 (${receiptFile.name})` : `영수증 변경됨 (${receiptFile.name})`)
+                                        : '기존 영수증 유지됨'
+                                    }
                                 </span>
                             </>
                         ) : (
@@ -211,7 +246,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                     </div>
 
                     {/* Date & Category Row */}
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1">
                             <label className="block text-xs font-bold text-slate-500 mb-1.5">날짜</label>
                             <div className="relative">
@@ -254,14 +289,9 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                             <Check size={20} />
                         )}
                         <span>
-                            {tripId ? '이 여행 경비로 저장' : '공통 경비로 저장'}
+                            {expenseToEdit ? '수정 완료' : (tripId ? '이 여행 경비로 저장' : '공통 경비로 저장')}
                         </span>
                     </button>
-                    {!tripId && (
-                        <p className="text-center text-xs text-slate-400 mt-2">
-                            선택된 여행이 없습니다. 전체 지출에 포함됩니다.
-                        </p>
-                    )}
                 </form>
             </div>
         </div>

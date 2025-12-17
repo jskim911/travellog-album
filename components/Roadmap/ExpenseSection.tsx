@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator, FileText } from 'lucide-react';
+import { Plus, Receipt, PieChart, TrendingUp, Trash2, Download, Calendar, Users, Calculator, FileText, Pencil } from 'lucide-react';
 import { collection, query, where, onSnapshot, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import html2canvas from 'html2canvas';
@@ -18,6 +18,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
     const [expenses, setExpenses] = useState<Expense[]>([]); // Filtered
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const printRef = React.useRef<HTMLDivElement>(null);
 
     // Trip Info for PDF and Header
@@ -133,6 +134,16 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
         }
     };
 
+    const handleEdit = (expense: Expense) => {
+        setEditingExpense(expense);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setTimeout(() => setEditingExpense(null), 300);
+    };
+
     const formatCurrency = (amount: number, currency: string = 'KRW') => {
         try {
             return new Intl.NumberFormat('ko-KR', { style: 'currency', currency }).format(amount);
@@ -222,16 +233,16 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                 </button>
             </div>
 
-            <div ref={printRef} className="space-y-8 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div ref={printRef} className="space-y-8 p-4 sm:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
 
                 {/* PDF Report Header */}
                 <div className="border-b-2 border-slate-100 pb-6 mb-8">
                     {currentTrip ? (
                         <>
-                            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
                                 {currentTrip.tripName}
                             </h1>
-                            <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6">
+                            <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6 text-sm sm:text-base">
                                 <div className="flex items-center gap-1.5">
                                     <Calendar size={16} />
                                     <span>
@@ -254,7 +265,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                             {/* Total */}
                             <div className="text-center sm:text-left sm:pr-6">
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
-                                <p className="text-2xl font-black text-slate-900">{formatCurrency(totalAmount)}</p>
+                                <p className="text-2xl font-black text-slate-900 break-words">{formatCurrency(totalAmount)}</p>
                             </div>
 
                             {/* Participant */}
@@ -272,7 +283,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                                     <Calculator size={12} />
                                     1인당 비용
                                 </p>
-                                <p className="text-2xl font-black text-violet-600">
+                                <p className="text-2xl font-black text-violet-600 break-words">
                                     {formatCurrency(totalAmount / participantCount)}
                                 </p>
                             </div>
@@ -289,7 +300,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                     <div className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group">
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                         <p className="text-emerald-100 text-sm font-medium mb-1 relative z-10">총 지출</p>
-                        <h3 className="text-3xl font-black relative z-10 tracking-tight">
+                        <h3 className="text-3xl font-black relative z-10 tracking-tight break-words">
                             {formatCurrency(totalAmount)}
                         </h3>
                         <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
@@ -384,21 +395,21 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                             </div>
                         ) : (
                             expenses.map((expense) => (
-                                <div key={expense.id} className="flex items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group">
+                                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group gap-4">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform">
+                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform flex-shrink-0">
                                             {getCategoryIcon(expense.category)}
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-slate-800 text-sm">{expense.description}</h4>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                                <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                            <h4 className="font-bold text-slate-800 text-sm line-clamp-1 break-all">{expense.description}</h4>
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
+                                                <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">
                                                     {new Date(expense.date).toLocaleDateString()}
                                                 </span>
-                                                <span>•</span>
-                                                <span>{getCategoryName(expense.category)}</span>
+                                                <span className="hidden sm:inline">•</span>
+                                                <span className="whitespace-nowrap">{getCategoryName(expense.category)}</span>
                                                 {expense.isOCR && (
-                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded" title="AI가 영수증 내용을 자동으로 분석했습니다">
+                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded whitespace-nowrap" title="AI가 영수증 내용을 자동으로 분석했습니다">
                                                         <Receipt size={10} />
                                                         AI 스캔됨
                                                     </span>
@@ -409,7 +420,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                                                             e.stopPropagation();
                                                             window.open(expense.receiptUrl, '_blank');
                                                         }}
-                                                        className="flex items-center gap-0.5 text-violet-500 bg-violet-50 hover:bg-violet-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                                                        className="flex items-center gap-0.5 text-violet-500 bg-violet-50 hover:bg-violet-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer whitespace-nowrap"
                                                         title="영수증 보기"
                                                     >
                                                         <FileText size={10} />
@@ -419,15 +430,26 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="font-black text-slate-900 text-lg">{formatCurrency(expense.amount, expense.currency)}</span>
-                                        <button
-                                            onClick={() => handleDelete(expense.id)}
-                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                                            title="삭제"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
+                                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-[4rem] sm:pl-0">
+                                        <span className="font-black text-slate-900 text-lg md:text-xl truncate max-w-[150px] sm:max-w-none text-right">
+                                            {formatCurrency(expense.amount, expense.currency)}
+                                        </span>
+                                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+                                            <button
+                                                onClick={() => handleEdit(expense)}
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
+                                                title="수정"
+                                            >
+                                                <Pencil size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(expense.id)}
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                title="삭제"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -439,8 +461,9 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
 
             <ExpenseInputModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
                 tripId={selectedTripId}
+                expenseToEdit={editingExpense}
             />
         </div>
     );
