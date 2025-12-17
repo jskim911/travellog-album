@@ -202,7 +202,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header / Actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <div className={`flex flex-col sm:flex-row justify-between items-center ${isCompact ? 'mb-2' : 'mb-6'} gap-4`}>
                 {!isCompact && (
                     <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
                         <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
@@ -224,13 +224,13 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 )}
             </div>
 
-            <div ref={printRef} className="space-y-8 p-4 sm:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div ref={printRef} className={`space-y-8 ${isCompact ? 'p-3' : 'p-4 sm:p-6'} bg-white rounded-3xl border border-slate-100 shadow-sm`}>
 
                 {/* PDF Report Header */}
-                <div className="border-b-2 border-slate-100 pb-6 mb-8">
+                <div className={`border-b-2 border-slate-100 ${isCompact ? 'pb-3 mb-3' : 'pb-6 mb-8'}`}>
                     {currentTrip ? (
                         <>
-                            <h1 className={`${isCompact ? 'text-lg' : 'text-4xl'} font-black text-slate-900 mb-3 tracking-tight truncate`}>
+                            <h1 className={`${isCompact ? 'text-lg mb-1.5' : 'text-4xl mb-3'} font-black text-slate-900 tracking-tight truncate`}>
                                 {currentTrip.tripName}({participantCount}명)
                             </h1>
                             {!isCompact && (
@@ -253,8 +253,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                     )}
 
                     {/* Summary Box */}
-                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-                        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <div className={`bg-slate-50 rounded-2xl ${isCompact ? 'p-3' : 'p-6'} border border-slate-200`}>
+                        <div className={`bg-slate-50 rounded-2xl ${isCompact ? 'p-0' : 'p-6'} border ${isCompact ? 'border-none' : 'border-slate-200'}`}>
                             {isCompact ? (
                                 <div className="text-center">
                                     <p className="text-lg font-black text-slate-800">

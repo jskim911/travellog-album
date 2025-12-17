@@ -344,7 +344,9 @@ The `generateEmojiImage()` function is currently a **placeholder**. For producti
 - **Expense Integration**:
   - **Linked Data**: Connected the Expense Section's participant logic directly to the selected Trip's data.
   - **UI Update**: Displayed participant count in the expense header (e.g., "Trip Name (4명)").
-  - **Mobile UI**: Hidden the separate "Traveler Count" box in mobile view to reduce clutter.
+  - **Mobile UI**: 
+    - Hidden the separate "Traveler Count" box in mobile view to reduce clutter.
+    - **Compact Spacing**: Aggressively reduced margins and padding in the Expense view (Header, Summary Box) for a tighter, more information-dense mobile layout.
   - **Calculation**: Used the stored participant count for standardizing "Cost per Person" calculations.
   - **Removed Manual Control**: Removed the standalone participant adjuster in the expense view to ensure data consistency with the itinerary.
 
