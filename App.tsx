@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download, Smartphone, Monitor } from 'lucide-react';
+import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download, Smartphone, Monitor, Home } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { deleteObject, ref } from 'firebase/storage';
@@ -359,8 +359,8 @@ const App: React.FC = () => {
                 className={`flex-1 py-3 flex items-center justify-center gap-2 text-xs font-bold transition-all relative ${currentPage === 'gallery' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
                   }`}
               >
-                <ImageIcon size={18} />
-                갤러리
+                <Home size={18} />
+                홈
                 {currentPage === 'gallery' && (
                   <div className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-600" />
                 )}
@@ -513,13 +513,13 @@ const App: React.FC = () => {
 
             {/* Content Grid */}
             {authLoading || loading ? (
-              <div className={`grid ${viewMode === 'by-date' ? 'grid-cols-1' : (isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3')} gap-3`}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-pulse">
-                    <div className="h-48 bg-slate-200" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-slate-200 rounded w-3/4" />
-                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+              <div className={`grid ${viewMode === 'by-date' ? 'grid-cols-1' : (isSmartphoneMode ? 'grid-cols-3' : 'grid-cols-3 sm:grid-cols-3 lg:grid-cols-5')} gap-2 sm:gap-3`}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+                  <div key={i} className="aspect-[4/5] bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-pulse">
+                    <div className="h-2/3 bg-slate-200" />
+                    <div className="p-2 space-y-2">
+                      <div className="h-3 bg-slate-200 rounded w-3/4" />
+                      <div className="h-2 bg-slate-200 rounded w-1/2" />
                     </div>
                   </div>
                 ))}
