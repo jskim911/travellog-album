@@ -18,9 +18,10 @@ interface Material {
 
 interface MaterialSectionProps {
     selectedTripId: string | null;
+    isSmartphoneMode?: boolean;
 }
 
-export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId }) => {
+export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId, isSmartphoneMode = false }) => {
     const { user } = useAuth();
     const [materials, setMaterials] = useState<Material[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -133,10 +134,10 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
             {/* Header - Compact */}
             <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <div>
-                    <h2 className="text-base sm:text-xl font-bold text-slate-800">
+                    <h2 className={`${isSmartphoneMode ? 'text-base' : 'text-xl'} font-bold text-slate-800`}>
                         {selectedTripId ? '여행 자료' : '자료 보관함'}
                     </h2>
-                    <p className="text-[10px] sm:text-sm text-slate-500 line-clamp-1">
+                    <p className={`${isSmartphoneMode ? 'text-[10px]' : 'text-sm'} text-slate-500 line-clamp-1`}>
                         여행 관련 자료를 관리하세요.
                     </p>
                 </div>
@@ -170,49 +171,51 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
                     <p className="text-xs">자료가 없습니다.</p>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {materials.map((item, index) => (
-                        <div key={item.id} className={`flex items-center p-2 sm:p-4 gap-2 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group`}>
-                            {/* Icon / Preview */}
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center border border-slate-200">
+                        <div key={item.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all group overflow-hidden flex flex-col relative">
+                            {/* Icon / Preview Area */}
+                            <div className="aspect-[4/3] bg-slate-50 border-b border-slate-100 flex items-center justify-center overflow-hidden relative">
                                 {item.type === 'image' ? (
-                                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                                    <img src={item.url} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                 ) : (
-                                    <FileText size={16} className="text-slate-400" />
+                                    <FileText size={32} className="text-slate-300 group-hover:text-violet-400 transition-colors" />
                                 )}
-                            </div>
 
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-[11px] sm:text-sm font-bold text-slate-800 truncate" onClick={() => window.open(item.url, '_blank')}>
-                                    {item.name}
-                                </h3>
-                                <div className="flex items-center gap-2 text-[9px] sm:text-xs text-slate-500 mt-0.5">
-                                    <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
-                                        {item.type.toUpperCase()}
-                                    </span>
-                                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-                                    <span className="hidden sm:inline">•</span>
-                                    <span className="hidden sm:inline">{formatSize(item.size)}</span>
+                                {/* Overlay Actions */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={() => window.open(item.url, '_blank')}
+                                        className="p-2 bg-white/20 backdrop-blur-sm text-white hover:bg-white hover:text-violet-600 rounded-full transition-all"
+                                        title="보기"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(item)}
+                                        className="p-2 bg-white/20 backdrop-blur-sm text-white hover:bg-white hover:text-red-500 rounded-full transition-all"
+                                        title="삭제"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
 
-                            {/* Actions */}
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => window.open(item.url, '_blank')}
-                                    className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all"
-                                    title="보기"
-                                >
-                                    <ExternalLink size={16} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(item)}
-                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                    title="삭제"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                            {/* Info */}
+                            <div className="p-3 flex flex-col flex-1">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                    <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-600 font-bold uppercase tracking-wider flex-shrink-0">
+                                        {item.type}
+                                    </span>
+                                </div>
+                                <h3 className={`${isSmartphoneMode ? 'text-xs' : 'text-sm'} font-bold text-slate-800 line-clamp-2 leading-tight mb-2`} title={item.name}>
+                                    {item.name}
+                                </h3>
+
+                                <div className="mt-auto flex items-center justify-between text-[10px] text-slate-400">
+                                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                    <span>{formatSize(item.size)}</span>
+                                </div>
                             </div>
                         </div>
                     ))}

@@ -9,9 +9,10 @@ import { RoadmapVisualizationModal } from './RoadmapVisualizationModal';
 interface ItinerarySectionProps {
     selectedTripId: string | null;
     onSelectTrip: (tripId: string | null) => void;
+    isSmartphoneMode?: boolean;
 }
 
-export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip }) => {
+export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip, isSmartphoneMode = false }) => {
     const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
 
@@ -403,7 +404,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
         return (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">내 여행 목록</h2>
+                    <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900`}>내 여행 목록</h2>
                     <button
                         onClick={() => setIsCreating(true)}
                         className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-full shadow-lg transition-all"
@@ -516,13 +517,13 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             </div>
                         ) : (
                             <div className="group">
-                                <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer" onClick={startEditingTripInfo} title="클릭하여 수정">
+                                <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer`} onClick={startEditingTripInfo} title="클릭하여 수정">
                                     {currentTrip.tripName}
                                     <span className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-violet-500 transition-all">
-                                        <Edit2 size={16} />
+                                        <Edit2 size={isSmartphoneMode ? 16 : 20} />
                                     </span>
                                 </h2>
-                                <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                                <div className={`flex items-center gap-2 text-slate-500 ${isSmartphoneMode ? 'text-sm' : 'text-base'} font-medium`}>
                                     <CalendarIcon size={14} />
                                     <span>
                                         {new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}
@@ -553,30 +554,33 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 </div>
             </div >
 
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div className={`flex flex-col ${isSmartphoneMode ? 'gap-4' : 'lg:flex-row gap-8'}`}>
                 {/* Left: Day Selector */}
-                <div className="lg:w-64 flex-shrink-0">
-                    <div className="flex overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-hide">
+                <div className={`${isSmartphoneMode ? 'w-full' : 'lg:w-64'} flex-shrink-0`}>
+                    <div className={`flex ${isSmartphoneMode ? 'overflow-x-auto gap-2 pb-2' : 'lg:flex-col gap-2 pb-0'} scrollbar-hide`}>
                         {currentTrip.routes.map((route, index) => (
                             <button
                                 key={route.id}
                                 onClick={() => setSelectedDayIndex(index)}
                                 className={`
-                  flex-shrink-0 flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left group
-                  ${selectedDayDayIndex === index
-                                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
-                                        : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-100'}
+                  flex-shrink-0 flex items-center justify-between transition-all text-left group
+                  ${isSmartphoneMode
+                                        ? `px-3 py-2 rounded-lg border ${selectedDayDayIndex === index ? 'bg-violet-600 border-violet-600 text-white' : 'bg-white border-slate-200 text-slate-500'}`
+                                        : `px-4 py-3 rounded-xl border ${selectedDayDayIndex === index ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-100'}`
+                                    }
                 `}
                             >
-                                <div>
-                                    <span className={`text-[10px] font-bold block mb-0.5 ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                <div className={`${isSmartphoneMode ? 'flex items-center gap-1.5' : ''}`}>
+                                    <span className={`font-bold block ${isSmartphoneMode ? 'text-xs mb-0' : 'text-xs mb-0.5'} ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
                                         Day {index + 1}
                                     </span>
-                                    <span className="font-bold text-xs">
+                                    <span className={`font-bold ${isSmartphoneMode ? 'text-xs' : 'text-lg block'} ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
                                         {getDayDate(index).split('(')[0]}
                                     </span>
                                 </div>
-                                <ChevronRight size={16} className={`opacity-0 group-hover:opacity-100 transition-opacity ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-400'}`} />
+                                {!isSmartphoneMode && (
+                                    <ChevronRight size={16} className={`opacity-0 group-hover:opacity-100 transition-opacity ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-400'}`} />
+                                )}
                             </button>
                         ))}
                     </div>
@@ -598,17 +602,16 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             className="px-4 py-2 bg-white border border-slate-200 hover:border-violet-300 text-slate-700 hover:text-violet-700 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-2"
                         >
                             <Plus size={16} />
-                            일정 추가
+                            {isSmartphoneMode ? '추가' : '일정 추가'}
                         </button>
                     </div>
 
-                    {/* Timeline */}
-                    <div className="space-y-4 relative pl-4 sm:pl-6">
-                        {/* Timeline Line */}
-                        <div className="absolute left-[23px] sm:left-[31px] top-4 bottom-4 w-0.5 bg-slate-200" />
+                    {/* Places Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* No Timeline Line anymore */}
 
                         {!currentTrip.routes[selectedDayDayIndex]?.visitedPlaces || currentTrip.routes[selectedDayDayIndex].visitedPlaces.length === 0 ? (
-                            <div className="py-12 text-center text-slate-400 relative z-10 bg-slate-50">
+                            <div className="col-span-full py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                                 <MapPin size={32} className="mx-auto mb-2 opacity-20" />
                                 <p className="text-sm">등록된 일정이 없습니다.</p>
                                 <button onClick={() => setIsAddingPlace(true)} className="text-violet-600 font-bold text-sm mt-2 hover:underline">
@@ -617,9 +620,8 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             </div>
                         ) : (
                             currentTrip.routes[selectedDayDayIndex].visitedPlaces.map((place, idx) => (
-                                <div key={idx} className="relative z-10 pl-8 group">
-                                    {/* Dot */}
-                                    <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-slate-50 ring-1 ring-slate-200 ${editingPlaceIndex === idx ? 'bg-amber-400' : 'bg-violet-500'}`}></div>
+                                <div key={idx} className="group relative">
+                                    {/* No Dot */}
 
                                     {editingPlaceIndex === idx ? (
                                         // Edit Mode Form
@@ -664,21 +666,20 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         </div>
                                     ) : (
                                         // View Mode
-                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    {place.visitTime && (
-                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-violet-600 mb-1">
-                                                            <Clock size={12} />
-                                                            {place.visitTime}
-                                                        </div>
-                                                    )}
-                                                    <h4 className="font-bold text-slate-800 text-sm sm:text-lg">{place.name}</h4>
-                                                    {place.address && (
-                                                        <p className="text-sm text-slate-500 mt-1 whitespace-pre-wrap">{place.address}</p>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        // View Mode
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all h-full flex flex-col relative">
+                                            {/* Time & Actions Header */}
+                                            <div className="flex items-start justify-between mb-2">
+                                                {place.visitTime ? (
+                                                    <div className="flex items-center gap-1.5 font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg text-xs">
+                                                        <Clock size={14} />
+                                                        {place.visitTime}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs text-slate-400 px-2 py-1 bg-slate-50 rounded-lg">시간 미정</div>
+                                                )}
+
+                                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditingPlace(idx, place)}
                                                         className="p-1.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
@@ -695,55 +696,67 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                     </button>
                                                 </div>
                                             </div>
+
+                                            {/* Place Name */}
+                                            <h4 className={`${isSmartphoneMode ? 'text-sm' : 'text-lg'} font-bold text-slate-800 mb-1 line-clamp-1`}>
+                                                {place.name}
+                                            </h4>
+
+                                            {/* Address/Memo */}
+                                            {place.address && (
+                                                <p className="text-xs text-slate-500 line-clamp-2 mt-auto">
+                                                    {place.address}
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             ))
                         )}
 
-                        {/* Add Place Inline Form */}
+                        {/* Add Place Card Form */}
                         {isAddingPlace && (
-                            <div className="relative z-10 pl-8 animate-in fade-in slide-in-from-left-2">
-                                <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full border-4 border-slate-50 bg-slate-300"></div>
-                                <div className="bg-white p-4 rounded-xl border-2 border-violet-100 shadow-lg">
-                                    <h4 className="text-sm font-bold text-slate-800 mb-3">새 일정 추가</h4>
-                                    <div className="space-y-3">
+                            <div className="bg-white p-4 rounded-xl border-2 border-violet-100 shadow-lg animate-in fade-in zoom-in-95 duration-300">
+                                <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                    <Plus size={16} className="text-violet-600" />
+                                    새 일정 추가
+                                </h4>
+                                <div className="space-y-3">
+                                    <input
+                                        autoFocus
+                                        value={newPlaceName}
+                                        onChange={e => setNewPlaceName(e.target.value)}
+                                        placeholder="장소명 (예: 에펠탑)"
+                                        className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200"
+                                    />
+                                    <div className="flex flex-col gap-2">
                                         <input
-                                            autoFocus
-                                            value={newPlaceName}
-                                            onChange={e => setNewPlaceName(e.target.value)}
-                                            placeholder="장소명 (예: 에펠탑)"
-                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200"
+                                            type="time"
+                                            value={newPlaceTime}
+                                            onChange={e => setNewPlaceTime(e.target.value)}
+                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200"
                                         />
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="time"
-                                                value={newPlaceTime}
-                                                onChange={e => setNewPlaceTime(e.target.value)}
-                                                className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200"
-                                            />
-                                            <input
-                                                value={newPlaceMemo}
-                                                onChange={e => setNewPlaceMemo(e.target.value)}
-                                                placeholder="메모 (선택)"
-                                                className="flex-[2] px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200"
-                                            />
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-2">
-                                            <button
-                                                onClick={() => setIsAddingPlace(false)}
-                                                className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
-                                            >
-                                                취소
-                                            </button>
-                                            <button
-                                                onClick={handleAddPlace}
-                                                disabled={!newPlaceName}
-                                                className="px-3 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg disabled:opacity-50"
-                                            >
-                                                추가완료
-                                            </button>
-                                        </div>
+                                        <input
+                                            value={newPlaceMemo}
+                                            onChange={e => setNewPlaceMemo(e.target.value)}
+                                            placeholder="메모 (선택)"
+                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <button
+                                            onClick={() => setIsAddingPlace(false)}
+                                            className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            onClick={handleAddPlace}
+                                            disabled={!newPlaceName}
+                                            className="px-3 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg disabled:opacity-50"
+                                        >
+                                            추가완료
+                                        </button>
                                     </div>
                                 </div>
                             </div>

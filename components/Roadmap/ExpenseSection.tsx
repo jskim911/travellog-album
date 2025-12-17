@@ -240,7 +240,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 <div className="border-b-2 border-slate-100 pb-6 mb-8">
                     {currentTrip ? (
                         <>
-                            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+                            <h1 className={`${isCompact ? 'text-xl' : 'text-4xl'} font-black text-slate-900 mb-3 tracking-tight`}>
                                 {currentTrip.tripName}
                             </h1>
                             <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6 text-sm sm:text-base">
@@ -264,9 +264,9 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                     <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
                         <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 gap-6 sm:gap-0">
                             {/* Total */}
-                            <div className="text-center sm:text-left sm:pr-6">
+                            <div className={`text-center ${isCompact ? 'sm:text-left sm:pr-0' : 'sm:text-left sm:pr-6'}`}>
                                 <p className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">총 지출 금액</p>
-                                <p className="text-xl sm:text-2xl font-black text-slate-900 break-words">{formatCurrency(totalAmount)}</p>
+                                <p className={`${isCompact ? 'text-xl' : 'text-3xl'} font-black text-slate-900 break-words`}>{formatCurrency(totalAmount)}</p>
                             </div>
 
                             {/* Participant */}
@@ -284,7 +284,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                     <Calculator size={12} />
                                     1인당 비용
                                 </p>
-                                <p className="text-xl sm:text-2xl font-black text-violet-600 break-words">
+                                <p className={`${isCompact ? 'text-xl' : 'text-3xl'} font-black text-violet-600 break-words`}>
                                     {formatCurrency(totalAmount / participantCount)}
                                 </p>
                             </div>
@@ -292,79 +292,85 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                     </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 mb-4 px-1 flex items-center gap-2">
-                    <PieChart size={18} className="text-slate-400" />
-                    지출 상세 분석
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Total Expense Card */}
-                    <div className={`p-4 sm:p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group ${isCompact ? 'py-3 px-4' : ''}`}>
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <p className="text-emerald-100 text-xs sm:text-sm font-medium mb-1 relative z-10">총 지출</p>
-                        <h3 className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-black relative z-10 tracking-tight break-words`}>
-                            {formatCurrency(totalAmount)}
-                        </h3>
-                        {!isCompact && (
-                            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
-                                <TrendingUp size={12} />
-                                <span>{expenses.length}건의 지출 내역</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Category Stats Card */}
-                    <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-slate-500 text-sm font-bold">카테고리별 지출</p>
+                {!isCompact && (
+                    <>
+                        <h3 className="text-lg font-bold text-slate-900 mb-4 px-1 flex items-center gap-2">
                             <PieChart size={18} className="text-slate-400" />
-                        </div>
-                        <div className="space-y-3 max-h-[140px] overflow-y-auto scrollbar-thin pr-1">
-                            {categoryStats.length > 0 ? categoryStats.map((stat) => (
-                                <div key={stat.category} className="space-y-1">
-                                    <div className="flex justify-between text-xs sm:text-sm">
-                                        <span className="text-slate-600 font-medium flex items-center gap-1.5">
-                                            <span>{getCategoryIcon(stat.category)}</span>
-                                            {getCategoryName(stat.category)}
-                                        </span>
-                                        <span className="font-bold text-slate-800">{Math.round(stat.percentage)}%</span>
-                                    </div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                                            style={{ width: `${stat.percentage}%` }}
-                                        />
-                                    </div>
+                            지출 상세 분석
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {/* Total Expense Card */}
+                            <div className={`p-4 sm:p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group ${isCompact ? 'py-3 px-4' : ''}`}>
+                                <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                                <div className="relative z-10 flex flex-col items-center justify-center text-center h-full">
+                                    <p className="text-emerald-100 text-xs sm:text-sm font-medium mb-1">총 지출</p>
+                                    <h3 className={`${isCompact ? 'text-2xl' : 'text-4xl'} font-black tracking-tight break-words`}>
+                                        {formatCurrency(totalAmount)}
+                                    </h3>
+                                    {!isCompact && (
+                                        <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
+                                            <TrendingUp size={12} />
+                                            <span>{expenses.length}건의 지출 내역</span>
+                                        </div>
+                                    )}
                                 </div>
-                            )) : (
-                                <div className="h-full flex items-center justify-center">
-                                    <p className="text-xs text-slate-400">데이터가 없습니다.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* Action Card */}
-                    <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-colors">
-                        <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-1">
-                            <Receipt size={24} />
+                            {/* Category Stats Card */}
+                            <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-4">
+                                    <p className="text-slate-500 text-sm font-bold">카테고리별 지출</p>
+                                    <PieChart size={18} className="text-slate-400" />
+                                </div>
+                                <div className="space-y-3 max-h-[140px] overflow-y-auto scrollbar-thin pr-1">
+                                    {categoryStats.length > 0 ? categoryStats.map((stat) => (
+                                        <div key={stat.category} className="space-y-1">
+                                            <div className="flex justify-between text-xs sm:text-sm">
+                                                <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                                                    <span>{getCategoryIcon(stat.category)}</span>
+                                                    {getCategoryName(stat.category)}
+                                                </span>
+                                                <span className="font-bold text-slate-800">{Math.round(stat.percentage)}%</span>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                                                    style={{ width: `${stat.percentage}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="h-full flex items-center justify-center">
+                                            <p className="text-xs text-slate-400">데이터가 없습니다.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Card */}
+                            <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center justify-center text-center gap-3 hover:border-emerald-200 transition-colors">
+                                <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mb-1">
+                                    <Receipt size={24} />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-slate-800">새로운 지출 추가</h4>
+                                    <p className="text-xs text-slate-500 mt-1">영수증 스캔으로 간편하게</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsModalOpen(true)}
+                                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform active:scale-95"
+                                >
+                                    지출 입력하기
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <h4 className="font-bold text-slate-800">새로운 지출 추가</h4>
-                            <p className="text-xs text-slate-500 mt-1">영수증 스캔으로 간편하게</p>
-                        </div>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform active:scale-95"
-                        >
-                            지출 입력하기
-                        </button>
-                    </div>
-                </div>
+                    </>
+                )}
 
                 {/* Expense List */}
                 <div>
                     <div className="flex justify-between items-center mb-4 px-2">
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <h3 className={`${isCompact ? 'text-base' : 'text-xl'} font-bold text-slate-900 flex items-center gap-2`}>
                             {selectedTripId ? '이 여행의 지출 내역' : '전체 지출 내역'}
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] sm:text-xs font-normal">{expenses.length}</span>
                         </h3>
@@ -404,8 +410,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                             {getCategoryIcon(expense.category)}
                                         </div>
                                         <div className="min-w-0">
-                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-[11px] mb-0.5' : 'text-sm'} line-clamp-1 break-all`}>{expense.description}</h4>
-                                            <div className={`flex items-center ${isCompact ? 'gap-1 text-[10px]' : 'gap-1.5 sm:gap-2 text-[11px] sm:text-xs'} text-slate-500 flex-wrap`}>
+                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-[11px] mb-0.5' : 'text-base'} line-clamp-1 break-all`}>{expense.description}</h4>
+                                            <div className={`flex items-center ${isCompact ? 'gap-1 text-[10px]' : 'gap-2 text-xs'} text-slate-500 flex-wrap`}>
                                                 <span className="font-medium text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded whitespace-nowrap">
                                                     {new Date(expense.date).toLocaleDateString()}
                                                 </span>
@@ -415,8 +421,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={`flex items-center justify-between ${isCompact ? 'pl-[2.8rem] -mt-1 w-full' : 'sm:justify-end w-full sm:w-auto pl-[3.25rem]'}`}>
-                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-sm' : 'text-sm sm:text-xl'} truncate text-right mr-3`}>
+                                    <div className={`flex items-center justify-between ${isCompact ? 'pl-[2.8rem] -mt-1 w-full' : 'sm:justify-end w-full sm:w-auto pl-0'}`}>
+                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-sm' : 'text-xl'} truncate text-right mr-3`}>
                                             {formatCurrency(expense.amount, expense.currency)}
                                         </span>
                                         <div className="flex items-center gap-1">

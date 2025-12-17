@@ -268,7 +268,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight break-keep">
-                여행의 순간을 영원히 간직하세요
+                여행의 순간을 영원히 기억하세요
               </h2>
 
               <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
@@ -326,15 +326,17 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
 
         {/* Right Side - Upload Functionality */}
         <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-50 to-white">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-blue-500 rounded-xl flex items-center justify-center shadow-md">
-              <Upload size={20} className="text-white" />
+          {!isCompact && (
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-blue-500 rounded-xl flex items-center justify-center shadow-md">
+                <Upload size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">사진 업로드</h3>
+                <p className="text-xs text-slate-500">여행 추억을 저장하세요</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">사진 업로드</h3>
-              <p className="text-xs text-slate-500">여행 추억을 저장하세요</p>
-            </div>
-          </div>
+          )}
 
           <div className="space-y-4">
             {selectedFiles.length === 0 ? (

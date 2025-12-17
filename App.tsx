@@ -433,7 +433,7 @@ const App: React.FC = () => {
             {/* Upload Section - Compact Version */}
             {userStatus === 'approved' && (
               <section className="w-full mb-6 sm:mb-8">
-                <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} />
+                <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} isCompact={isSmartphoneMode} />
               </section>
             )}
 

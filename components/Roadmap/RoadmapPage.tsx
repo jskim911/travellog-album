@@ -63,6 +63,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ isSmartphoneMode = fal
                     <ItinerarySection
                         selectedTripId={selectedTripId}
                         onSelectTrip={setSelectedTripId}
+                        isSmartphoneMode={isSmartphoneMode}
                     />
                 ) : activeTab === 'expenses' ? (
                     <ExpenseSection
@@ -72,6 +73,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ isSmartphoneMode = fal
                 ) : (
                     <MaterialSection
                         selectedTripId={selectedTripId}
+                        isSmartphoneMode={isSmartphoneMode}
                     />
                 )}
             </div>
