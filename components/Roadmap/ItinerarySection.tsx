@@ -516,21 +516,25 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 </div>
                             </div>
                         ) : (
-                            <div className="group">
-                                <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer`} onClick={startEditingTripInfo} title="클릭하여 수정">
+                            <div className="group min-w-0">
+                                <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer line-clamp-1 break-all`} onClick={startEditingTripInfo} title="클릭하여 수정">
                                     {currentTrip.tripName}
-                                    <span className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-violet-500 transition-all">
-                                        <Edit2 size={isSmartphoneMode ? 16 : 20} />
-                                    </span>
+                                    {!isSmartphoneMode && (
+                                        <span className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-violet-500 transition-all">
+                                            <Edit2 size={20} />
+                                        </span>
+                                    )}
                                 </h2>
-                                <div className={`flex items-center gap-2 text-slate-500 ${isSmartphoneMode ? 'text-sm' : 'text-base'} font-medium`}>
-                                    <CalendarIcon size={14} />
-                                    <span>
-                                        {new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}
-                                    </span>
-                                    <span className="w-1 h-1 bg-slate-300 rounded-full mx-1" />
-                                    <span>{currentTrip.routes.length} Days</span>
-                                </div>
+                                {!isSmartphoneMode && (
+                                    <div className="flex items-center gap-2 text-slate-500 text-base font-medium">
+                                        <CalendarIcon size={14} />
+                                        <span>
+                                            {new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}
+                                        </span>
+                                        <span className="w-1 h-1 bg-slate-300 rounded-full mx-1" />
+                                        <span>{currentTrip.routes.length} Days</span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -571,12 +575,14 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 `}
                             >
                                 <div className={`${isSmartphoneMode ? 'flex items-center gap-1.5' : ''}`}>
-                                    <span className={`font-bold block ${isSmartphoneMode ? 'text-xs mb-0' : 'text-xs mb-0.5'} ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
-                                        Day {index + 1}
+                                    <span className={`font-bold block ${isSmartphoneMode ? 'text-xs text-center w-full' : 'text-xs mb-0.5'} ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                        {isSmartphoneMode ? `${getDayDate(index).split('(')[0].replace(/(\d{4})\.\s/, '')}`.trim() : `Day ${index + 1}`}
                                     </span>
-                                    <span className={`font-bold ${isSmartphoneMode ? 'text-xs' : 'text-lg block'} ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
-                                        {getDayDate(index).split('(')[0]}
-                                    </span>
+                                    {!isSmartphoneMode && (
+                                        <span className={`font-bold ${isSmartphoneMode ? 'hidden' : 'text-lg block'} ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
+                                            {getDayDate(index).split('(')[0]}
+                                        </span>
+                                    )}
                                 </div>
                                 {!isSmartphoneMode && (
                                     <ChevronRight size={16} className={`opacity-0 group-hover:opacity-100 transition-opacity ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-400'}`} />
@@ -703,7 +709,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             </h4>
 
                                             {/* Address/Memo */}
-                                            {place.address && (
+                                            {place.address && !isSmartphoneMode && (
                                                 <p className="text-xs text-slate-500 line-clamp-2 mt-auto">
                                                     {place.address}
                                                 </p>
