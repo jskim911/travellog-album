@@ -319,3 +319,42 @@ The `generateEmojiImage()` function is currently a **placeholder**. For producti
 **Developer**: Antigravity AI  
 **Status**: ✅ Multi-Trip & Expense Feature Complete  
 **Next**: Gallery Integration & Testing
+
+---
+
+## Session 4: Mobile Optimization & Participant Management (2025-12-17)
+
+### 1. 📱 Mobile UI Optimization (Smartphones)
+- **Gallery Grid**: Enforced a consistent **3-column grid** layout for photo cards on mobile devices.
+- **Mobile Navigation**: Replaced the text-based "Gallery" tab with a **Home Icon** and "Gallery" text for better intuition.
+- **Itinerary Header (Mobile)**:
+  - **Simplified Title**: Truncated long trip titles to **1 line** with text overflow handling.
+  - **Date Hiding**: Hid detailed date ranges and duration badges to save screen space.
+  - **Edit Visibility**: Ensured the **Edit (Pencil)** icon is always visible in mobile mode, replacing the hover-only behavior of PC mode.
+  - **Action Buttons**: Removed 'Map View' and 'Delete Trip' buttons from the mobile header to reduce clutter.
+- **Itinerary List (Mobile)**:
+  - **Day Tabs**: Condensed day selectors to show only dates (e.g., "12. 19.") without the year or "Day X" label, allowing more tabs to fit on screen.
+  - **Place Cards**: Restricted place names to **1 line** and completely hid address/memo text to maintain a clean list view.
+
+### 2. 👥 Participant Count Management
+- **Data Model Update**: Added `participantCount` field to the `Itinerary` interface.
+- **Itinerary Integration**:
+  - **Create/Edit**: Added input controls (Plus/Minus buttons) for "Number of Travelers" in both the new trip creation form and the trip edit modal.
+  - **Display**: Added participant count to the trip details header (e.g., "4명").
+- **Expense Integration**:
+  - **Linked Data**: Connected the Expense Section's participant logic directly to the selected Trip's data.
+  - **UI Update**: Displayed participant count in the expense header (e.g., "Trip Name (4명)").
+  - **Calculation**: Used the stored participant count for standardizing "Cost per Person" calculations.
+  - **Removed Manual Control**: Removed the standalone participant adjuster in the expense view to ensure data consistency with the itinerary.
+
+### 3. 🛠️ Code Maintenance
+- **Refactoring**: Cleaned up `ItinerarySection.tsx` and `ExpenseSection.tsx` to handle the new `participantCount` prop efficiently.
+- **Bug Fixes**: Resolved minor syntax errors (unmatched tags) in the Itinerary component during the update.
+- **Git**: Successfully committed and pushed all changes to `main` branch.
+
+---
+
+**Date**: 2025-12-17
+**Developer**: Antigravity AI
+**Status**: ✅ Mobile Optimization Complete
+**Next**: Final comprehensive testing on various device sizes.
