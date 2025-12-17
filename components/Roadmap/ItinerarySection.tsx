@@ -567,11 +567,9 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             <div className="group min-w-0">
                                 <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900 tracking-tight mb-2 flex items-center gap-2 cursor-pointer line-clamp-1 break-all`} onClick={startEditingTripInfo} title="클릭하여 수정">
                                     {currentTrip.tripName}
-                                    {!isSmartphoneMode && (
-                                        <span className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-violet-500 transition-all">
-                                            <Edit2 size={20} />
-                                        </span>
-                                    )}
+                                    <span className={`${isSmartphoneMode ? 'text-slate-400' : 'opacity-0 group-hover:opacity-100 text-slate-300'} hover:text-violet-500 transition-all`}>
+                                        <Edit2 size={isSmartphoneMode ? 16 : 20} />
+                                    </span>
                                 </h2>
                                 {!isSmartphoneMode && (
                                     <div className="flex items-center gap-2 text-slate-500 text-base font-medium">
@@ -588,22 +586,25 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                     </div>
                 </div>
 
-                <div className="flex gap-2 self-start sm:self-center">
-                    <button
-                        onClick={() => setShowVisualMap(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 rounded-xl font-bold transition-all shadow-sm"
-                    >
-                        <MapIcon size={16} />
-                        <span className="hidden sm:inline text-xs">로드맵 보기</span>
-                    </button>
-                    <button
-                        onClick={() => handleDeleteTrip(currentTrip)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                        title="이 여행 삭제"
-                    >
-                        <Trash2 size={20} />
-                    </button>
-                </div>
+                {/* Action Buttons (Hide on Smartphone) */}
+                {!isSmartphoneMode && (
+                    <div className="flex gap-2 self-start sm:self-center">
+                        <button
+                            onClick={() => setShowVisualMap(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 rounded-xl font-bold transition-all shadow-sm"
+                        >
+                            <MapIcon size={16} />
+                            <span className="hidden sm:inline text-xs">로드맵 보기</span>
+                        </button>
+                        <button
+                            onClick={() => handleDeleteTrip(currentTrip)}
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                            title="이 여행 삭제"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                    </div>
+                )}
             </div >
 
             <div className={`flex flex-col ${isSmartphoneMode ? 'gap-4' : 'lg:flex-row gap-8'}`}>
