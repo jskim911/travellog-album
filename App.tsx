@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download } from 'lucide-react';
+import { Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield, Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download, Smartphone, Monitor } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { deleteObject, ref } from 'firebase/storage';
@@ -18,6 +18,7 @@ import { useAuth } from './src/hooks/useAuth';
 
 const App: React.FC = () => {
   const { user, loading: authLoading, signOut } = useAuth();
+  const [isSmartphoneMode, setIsSmartphoneMode] = useState(true);
 
   // Navigation State
   const [currentPage, setCurrentPage] = useState<'gallery' | 'roadmap'>('gallery');
@@ -231,6 +232,18 @@ const App: React.FC = () => {
                 <p className="text-[10px] sm:text-xs text-slate-500 font-medium -mt-0.5">여행의 모든 순간</p>
               </div>
 
+              {/* Smart Mode Toggle */}
+              <button
+                onClick={() => setIsSmartphoneMode(!isSmartphoneMode)}
+                className={`ml-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all border ${isSmartphoneMode
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                  }`}
+              >
+                {isSmartphoneMode ? <Smartphone size={14} /> : <Monitor size={14} />}
+                <span className="hidden sm:inline">{isSmartphoneMode ? '스마트폰' : 'PC'}</span>
+              </button>
+
               {/* Navigation Tabs (Desktop/Tablet) */}
               {user && userStatus === 'approved' && (
                 <div className="hidden md:flex ml-8 bg-slate-100/50 p-1.5 rounded-2xl">
@@ -386,7 +399,7 @@ const App: React.FC = () => {
         )}
 
         {currentPage === 'roadmap' && userStatus === 'approved' ? (
-          <RoadmapPage />
+          <RoadmapPage isSmartphoneMode={isSmartphoneMode} />
         ) : (
           <>
             {/* Compact Upload Button - Only show when approved */}
@@ -431,109 +444,45 @@ const App: React.FC = () => {
                   <p className="text-zinc-500 mt-0.5 sm:mt-1 text-sm sm:text-base font-medium">나만의 특별한 여행 기록</p>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end overflow-x-auto pb-1 scrollbar-hide">
                   {isSelectionMode ? (
                     <>
-                      <span className="text-xs sm:text-sm font-medium text-violet-600 animate-in fade-in">
-                        {selectedAlbumIds.size}개 선택됨
+                      <span className="text-xs sm:text-sm font-medium text-violet-600 whitespace-nowrap">
+                        {selectedAlbumIds.size}개
                       </span>
-                      {selectedAlbumIds.size > 0 && (
-                        <>
-                          <button
-                            onClick={() => setIsStoryboardOpen(true)}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                          >
-                            <BookOpen size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden xs:inline">스토리보드</span>
-                          </button>
-                          <button
-                            onClick={() => setIsEmojiModalOpen(true)}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                          >
-                            <Smile size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden xs:inline">이모지</span>
-                          </button>
-                          <button
-                            onClick={handleDownloadSelected}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-100 hover:bg-blue-200 text-blue-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                          >
-                            <Download size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden xs:inline">다운로드</span>
-                          </button>
-                          <button
-                            onClick={handleDeleteSelected}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-100 hover:bg-red-200 text-red-600 text-xs sm:text-sm font-bold rounded-full shadow-sm transition-all flex items-center gap-1.5 sm:gap-2 animate-in zoom-in-50"
-                          >
-                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden xs:inline">삭제</span>
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={toggleSelectionMode}
-                        className="p-1.5 sm:p-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-full transition-colors"
-                        title="취소"
-                      >
-                        <X size={18} className="sm:w-5 sm:h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setIsStoryboardOpen(true)} className="p-2 bg-violet-100 text-violet-600 rounded-full hover:bg-violet-200"><BookOpen size={16} /></button>
+                        <button onClick={() => setIsEmojiModalOpen(true)} className="p-2 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-200"><Smile size={16} /></button>
+                        <button onClick={handleDownloadSelected} className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"><Download size={16} /></button>
+                        <button onClick={handleDeleteSelected} className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200"><Trash2 size={16} /></button>
+                        <div className="w-px h-4 bg-slate-300 mx-1"></div>
+                        <button onClick={toggleSelectionMode} className="p-2 bg-slate-100 text-slate-500 rounded-full"><X size={16} /></button>
+                      </div>
                     </>
                   ) : (
                     <>
                       {/* View Mode Toggle */}
-                      <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1">
-                        <button
-                          onClick={() => setViewMode('all')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'all'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          title="전체 보기"
-                        >
-                          <Grid3x3 size={14} className="inline mr-1" />
-                          <span className="hidden sm:inline">전체</span>
-                        </button>
-                        <button
-                          onClick={() => setViewMode('by-date')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-date'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          title="날짜별"
-                        >
-                          <CalendarIcon size={14} className="inline mr-1" />
-                          <span className="hidden sm:inline">날짜별</span>
-                        </button>
-                        <button
-                          onClick={() => setViewMode('by-location')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${viewMode === 'by-location'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                          title="장소별"
-                        >
-                          <MapPinIcon size={14} className="inline mr-1" />
-                          <span className="hidden sm:inline">장소</span>
-                        </button>
+                      <div className="flex items-center gap-1 bg-slate-100 rounded-full p-1 flex-shrink-0">
+                        <button onClick={() => setViewMode('all')} className={`px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${viewMode === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>전체</button>
+                        <button onClick={() => setViewMode('by-date')} className={`px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${viewMode === 'by-date' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>날짜</button>
+                        <button onClick={() => setViewMode('by-location')} className={`px-2.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${viewMode === 'by-location' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>장소</button>
                       </div>
 
                       <button
                         onClick={() => setIsEmojiModalOpen(true)}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-xs sm:text-sm font-bold rounded-full shadow-md transition-all flex items-center gap-1.5 sm:gap-2"
+                        className="p-2 bg-pink-50 text-pink-600 rounded-full hover:bg-pink-100 flex-shrink-0"
+                        title="이모지 만들기"
                       >
-                        <Smile size={14} className="sm:w-4 sm:h-4" />
-                        <span>이모지 만들기</span>
+                        <Smile size={18} />
                       </button>
 
                       <button
                         onClick={toggleSelectionMode}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs sm:text-sm font-bold rounded-full shadow-md transition-all flex items-center gap-1.5 sm:gap-2"
+                        className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 flex-shrink-0"
+                        title="선택 / 관리"
                       >
-                        <CheckCircle2 size={14} className="sm:w-4 sm:h-4" />
-                        <span>선택 / 관리</span>
+                        <CheckCircle2 size={18} />
                       </button>
-                      <span className="px-2.5 py-1 sm:px-3 sm:py-1 bg-zinc-100 text-zinc-600 text-xs rounded-full font-bold">
-                        {albums.length} Photos
-                      </span>
                     </>
                   )}
                 </div>
@@ -562,7 +511,7 @@ const App: React.FC = () => {
 
             {/* Content Grid */}
             {authLoading || loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className={`grid ${viewMode === 'by-date' ? 'grid-cols-1' : (isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3')} gap-3`}>
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="h-72 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-pulse">
                     <div className="h-48 bg-slate-200" />
@@ -603,7 +552,7 @@ const App: React.FC = () => {
                   ).map(([date, groupAlbums]) => (
                     <div key={date}>
                       <h3 className="text-xl font-bold text-slate-800 mb-4 px-2">{date}</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
+                      <div className={`grid ${isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'} gap-3 sm:gap-4 mx-auto`}>
                         {groupAlbums.map((album) => (
                           <PhotoCard
                             key={album.id}
@@ -620,7 +569,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 // Default View (All or filtered by location, flattened)
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mx-auto">
+                <div className={`grid ${isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'} gap-3 sm:gap-4 mx-auto`}>
                   {filteredAlbums.map((album) => (
                     <PhotoCard
                       key={album.id}

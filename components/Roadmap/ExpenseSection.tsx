@@ -10,9 +10,10 @@ import { ExpenseInputModal } from './ExpenseInputModal';
 
 interface ExpenseSectionProps {
     selectedTripId: string | null;
+    isCompact?: boolean;
 }
 
-export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }) => {
+export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, isCompact = false }) => {
     const { user, loading: authLoading } = useAuth();
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]); // Filtered
@@ -297,16 +298,18 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Total Expense Card */}
-                    <div className="p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group">
+                    <div className={`p-4 sm:p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl text-white shadow-lg relative overflow-hidden group ${isCompact ? 'py-3 px-4' : ''}`}>
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <p className="text-emerald-100 text-sm font-medium mb-1 relative z-10">총 지출</p>
-                        <h3 className="text-3xl font-black relative z-10 tracking-tight break-words">
+                        <p className="text-emerald-100 text-xs sm:text-sm font-medium mb-1 relative z-10">총 지출</p>
+                        <h3 className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-black relative z-10 tracking-tight break-words`}>
                             {formatCurrency(totalAmount)}
                         </h3>
-                        <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
-                            <TrendingUp size={12} />
-                            <span>{expenses.length}건의 지출 내역</span>
-                        </div>
+                        {!isCompact && (
+                            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-100 bg-white/10 w-fit px-2 py-1 rounded-full relative z-10">
+                                <TrendingUp size={12} />
+                                <span>{expenses.length}건의 지출 내역</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Category Stats Card */}
@@ -395,59 +398,39 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                             </div>
                         ) : (
                             expenses.map((expense) => (
-                                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group gap-3 sm:gap-4">
-                                    <div className="flex items-center gap-3 sm:gap-4">
-                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform flex-shrink-0">
+                                <div key={expense.id} className={`flex ${isCompact ? 'flex-col' : 'flex-col sm:flex-row sm:items-center'} justify-between ${isCompact ? 'p-2.5 gap-2' : 'p-3 sm:p-4 gap-3 sm:gap-4'} border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group`}>
+                                    <div className={`flex items-center ${isCompact ? 'gap-2.5' : 'gap-3 sm:gap-4'}`}>
+                                        <div className={`${isCompact ? 'w-9 h-9 text-lg' : 'w-10 h-10 sm:w-12 sm:h-12 text-xl sm:text-2xl'} bg-slate-100 rounded-full flex items-center justify-center shadow-sm border border-slate-200 flex-shrink-0`}>
                                             {getCategoryIcon(expense.category)}
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm line-clamp-1 break-all">{expense.description}</h4>
-                                            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 flex-wrap">
-                                                <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                        <div className="min-w-0">
+                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-xs mb-0.5' : 'text-sm'} line-clamp-1 break-all`}>{expense.description}</h4>
+                                            <div className={`flex items-center ${isCompact ? 'gap-1 text-[10px]' : 'gap-1.5 sm:gap-2 text-[11px] sm:text-xs'} text-slate-500 flex-wrap`}>
+                                                <span className="font-medium text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded whitespace-nowrap">
                                                     {new Date(expense.date).toLocaleDateString()}
                                                 </span>
-                                                <span className="hidden sm:inline">•</span>
+                                                <span className="text-slate-300">|</span>
                                                 <span className="whitespace-nowrap">{getCategoryName(expense.category)}</span>
-                                                {expense.isOCR && (
-                                                    <span className="flex items-center gap-0.5 text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded whitespace-nowrap" title="AI가 영수증 내용을 자동으로 분석했습니다">
-                                                        <Receipt size={10} />
-                                                        AI 스캔됨
-                                                    </span>
-                                                )}
-                                                {expense.receiptUrl && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            window.open(expense.receiptUrl, '_blank');
-                                                        }}
-                                                        className="flex items-center gap-0.5 text-violet-500 bg-violet-50 hover:bg-violet-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer whitespace-nowrap"
-                                                        title="영수증 보기"
-                                                    >
-                                                        <FileText size={10} />
-                                                        영수증
-                                                    </button>
-                                                )}
+                                                {expense.isOCR && <span className="text-blue-500">AI</span>}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto pl-[3.25rem] sm:pl-0">
-                                        <span className="font-black text-slate-900 text-base sm:text-xl truncate max-w-[150px] sm:max-w-none text-right">
+                                    <div className={`flex items-center justify-between ${isCompact ? 'pl-[2.8rem] -mt-1 w-full' : 'sm:justify-end w-full sm:w-auto pl-[3.25rem]'}`}>
+                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-sm' : 'text-base sm:text-xl'} truncate text-right mr-3`}>
                                             {formatCurrency(expense.amount, expense.currency)}
                                         </span>
-                                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
+                                        <div className="flex items-center gap-1">
                                             <button
                                                 onClick={() => handleEdit(expense)}
-                                                className="p-1.5 sm:p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
-                                                title="수정"
+                                                className={`${isCompact ? 'p-1' : 'p-1.5 sm:p-2'} text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all`}
                                             >
-                                                <Pencil size={16} className="sm:w-[18px] sm:h-[18px]" />
+                                                <Pencil size={isCompact ? 14 : 16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(expense.id)}
-                                                className="p-1.5 sm:p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-                                                title="삭제"
+                                                className={`${isCompact ? 'p-1' : 'p-1.5 sm:p-2'} text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all`}
                                             >
-                                                <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+                                                <Trash2 size={isCompact ? 14 : 16} />
                                             </button>
                                         </div>
                                     </div>

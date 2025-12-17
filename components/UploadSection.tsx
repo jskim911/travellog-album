@@ -10,6 +10,7 @@ import imageCompression from 'browser-image-compression';
 
 interface UploadSectionProps {
   onOpenLoginModal: () => void;
+  isCompact?: boolean;
 }
 
 const FilePreview = ({ file }: { file: File }) => {
@@ -24,13 +25,13 @@ const FilePreview = ({ file }: { file: File }) => {
   return <img src={preview} alt={file.name} className="w-full h-full object-cover" />;
 };
 
-export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }) => {
+export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, isCompact = false }) => {
   const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   const [locationInput, setLocationInput] = useState('');
-  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]); // Default to today
+  const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
   const [progressMessage, setProgressMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,14 +47,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
       setSelectedFiles((prev) => [...prev, ...filesArray]);
       setUploadStatus('idle');
 
-      // AI 분석: 첫 번째 파일에 대해 자동으로 소감 문구 생성
       if (filesArray.length > 0 && aiSuggestions.length === 0) {
         await generateAISuggestions(filesArray[0]);
       }
     }
   };
 
-  // AI 소감 문구 생성
   const generateAISuggestions = async (file: File) => {
     setLoadingAI(true);
     try {
@@ -86,7 +85,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
       setSelectedFiles((prev) => [...prev, ...imageFiles]);
       setUploadStatus('idle');
 
-      // AI 분석: 첫 번째 파일에 대해 자동으로 소감 문구 생성
       if (imageFiles.length > 0 && aiSuggestions.length === 0) {
         await generateAISuggestions(imageFiles[0]);
       }
@@ -246,71 +244,85 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
 
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200/60 w-full">
-      <div className="grid md:grid-cols-[5fr_4fr] gap-0">
-        {/* Left Side - Travel Inspiration */}
-        <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 grid grid-cols-2 overflow-hidden min-h-[200px]">
-          {/* Animated Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full animate-pulse"></div>
-            <div className="absolute bottom-20 right-10 w-24 h-24 border-4 border-white rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
-            <div className="absolute top-1/2 left-1/4 w-16 h-16 border-4 border-white rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
-            <div className="absolute top-1/4 right-1/3 w-20 h-20 border-4 border-white rounded-full animate-bounce" style={{ animationDuration: '4s' }}></div>
-          </div>
-
-          {/* Gradient Overlay Animation */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" style={{ animationDuration: '5s' }}></div>
-
-          {/* Content */}
-          {/* Content Group 1: Title & Desc (Left) */}
-          <div className="relative z-10 flex flex-col justify-center items-start pl-2 sm:pl-4 animate-in fade-in slide-in-from-left-5 duration-700">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full mb-4">
-              <Camera size={16} className="text-white" />
-              <span className="text-white text-sm font-bold">TravelLog</span>
+      <div className={`grid ${isCompact ? 'grid-cols-1' : 'md:grid-cols-[5fr_4fr]'} gap-0`}>
+        {/* Left Side - Travel Inspiration (Hidden or highly compacted in Compact Mode) */}
+        {!isCompact ? (
+          <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 grid grid-cols-2 overflow-hidden min-h-[200px]">
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full animate-pulse"></div>
+              <div className="absolute bottom-20 right-10 w-24 h-24 border-4 border-white rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
+              <div className="absolute top-1/2 left-1/4 w-16 h-16 border-4 border-white rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
+              <div className="absolute top-1/4 right-1/3 w-20 h-20 border-4 border-white rounded-full animate-bounce" style={{ animationDuration: '4s' }}></div>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight break-keep">
-              여행의 순간을 영원히 간직하세요
-            </h2>
+            {/* Gradient Overlay Animation */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" style={{ animationDuration: '5s' }}></div>
 
-            <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
-              추억을 기록하고<br />언제든 떠올려보세요.
-            </p>
-          </div>
+            {/* Content */}
+            {/* Content Group 1: Title & Desc (Left) */}
+            <div className="relative z-10 flex flex-col justify-center items-start pl-2 sm:pl-4 animate-in fade-in slide-in-from-left-5 duration-700">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full mb-4">
+                <Camera size={16} className="text-white" />
+                <span className="text-white text-sm font-bold">TravelLog</span>
+              </div>
 
-          {/* Content Group 2: Features & Icons (Center of Right Half) */}
-          <div className="relative z-10 flex flex-col justify-center items-center gap-6">
-            {/* Features */}
-            <div className="space-y-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm shadow-inner border border-white/10">
-              <div className="flex items-center gap-3 text-white font-bold text-sm">
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                  <CheckCircle2 size={14} className="text-violet-600" />
-                </div>
-                <span>장소별 자동 분류</span>
-              </div>
-              <div className="flex items-center gap-3 text-white font-bold text-sm">
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                  <CheckCircle2 size={14} className="text-violet-600" />
-                </div>
-                <span>무제한 사진 저장</span>
-              </div>
-              <div className="flex items-center gap-3 text-white font-bold text-sm">
-                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                  <CheckCircle2 size={14} className="text-violet-600" />
-                </div>
-                <span>추억 비디오 제작</span>
-              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight break-keep">
+                여행의 순간을 영원히 간직하세요
+              </h2>
+
+              <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
+                추억을 기록하고<br />언제든 떠올려보세요.
+              </p>
             </div>
 
-            {/* Icons */}
-            <div className="flex gap-3">
-              {['✈️', '🏖️', '🗺️', '📸'].map((emoji, i) => (
-                <div key={i} className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all cursor-pointer shadow-lg">
-                  <span className="text-lg">{emoji}</span>
+            {/* Content Group 2: Features & Icons (Center of Right Half) */}
+            <div className="relative z-10 flex flex-col justify-center items-center gap-6">
+              {/* Features */}
+              <div className="space-y-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm shadow-inner border border-white/10">
+                <div className="flex items-center gap-3 text-white font-bold text-sm">
+                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                    <CheckCircle2 size={14} className="text-violet-600" />
+                  </div>
+                  <span>장소별 자동 분류</span>
                 </div>
-              ))}
+                <div className="flex items-center gap-3 text-white font-bold text-sm">
+                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                    <CheckCircle2 size={14} className="text-violet-600" />
+                  </div>
+                  <span>무제한 사진 저장</span>
+                </div>
+                <div className="flex items-center gap-3 text-white font-bold text-sm">
+                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                    <CheckCircle2 size={14} className="text-violet-600" />
+                  </div>
+                  <span>추억 비디오 제작</span>
+                </div>
+              </div>
+
+              {/* Icons */}
+              <div className="flex gap-3">
+                {['✈️', '🏖️', '🗺️', '📸'].map((emoji, i) => (
+                  <div key={i} className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all cursor-pointer shadow-lg">
+                    <span className="text-lg">{emoji}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Compact Banner Mode
+          <div className="bg-gradient-to-r from-violet-600 to-blue-600 p-4 flex items-center justify-between text-white">
+            <div className="flex items-center gap-3">
+              <Camera size={20} className="text-white/80" />
+              <div>
+                <h2 className="font-bold text-lg leading-none">사진 업로드</h2>
+                <p className="text-xs text-white/70 mt-0.5">여행의 추억을 기록하세요</p>
+              </div>
+            </div>
+            <Sparkles size={18} className="text-yellow-300 animate-pulse" />
+          </div>
+        )}
 
         {/* Right Side - Upload Functionality */}
         <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-50 to-white">

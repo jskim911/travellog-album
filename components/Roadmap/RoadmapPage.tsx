@@ -4,19 +4,23 @@ import { ItinerarySection } from './ItinerarySection';
 import { ExpenseSection } from './ExpenseSection';
 import { MaterialSection } from './MaterialSection';
 
-export const RoadmapPage: React.FC = () => {
+interface RoadmapPageProps {
+    isSmartphoneMode?: boolean;
+}
+
+export const RoadmapPage: React.FC<RoadmapPageProps> = ({ isSmartphoneMode = false }) => {
     const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? '' : ''}`}>
             {/* Header */}
-            <div className="mb-8">
-                <h1 className="text-3xl font-black text-slate-900 mb-2 flex items-center gap-3">
-                    <Map className="text-violet-600" />
+            <div className="mb-6">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1 flex items-center gap-2">
+                    <Map className="text-violet-600 w-6 h-6 sm:w-8 sm:h-8" />
                     여행 로드맵
                 </h1>
-                <p className="text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
+                <p className="text-sm text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
             </div>
 
             {/* Navigation Tabs */}
@@ -63,6 +67,7 @@ export const RoadmapPage: React.FC = () => {
                 ) : activeTab === 'expenses' ? (
                     <ExpenseSection
                         selectedTripId={selectedTripId}
+                        isCompact={isSmartphoneMode}
                     />
                 ) : (
                     <MaterialSection
