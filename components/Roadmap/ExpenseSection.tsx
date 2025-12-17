@@ -24,7 +24,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
 
     // Trip Info for PDF and Header
     const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
-    const participantCount = currentTrip?.participantCount || 1;
+    const participantCount = currentTrip?.participantCount ? Number(currentTrip.participantCount) : 1;
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
@@ -69,43 +69,43 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
         return () => unsubscribeExpenses();
     }, [user, authLoading]);
 
-    // 2. Filter Expenses & Fetch Trip Info when selectedTripId changes
+    // 2. Filter Expenses & Stats
     useEffect(() => {
-        // Filter logic
         if (selectedTripId) {
             const filtered = allExpenses.filter(e => e.itineraryId === selectedTripId);
             setExpenses(filtered);
             calculateStats(filtered);
-
-            // Fetch specific trip info
-            const fetchTrip = async () => {
-                try {
-                    const docRef = doc(db, 'itineraries', selectedTripId);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        setCurrentTrip({
-                            id: docSnap.id,
-                            ...data,
-                            startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
-                            endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
-                        } as Itinerary);
-                    } else {
-                        setCurrentTrip(null);
-                    }
-                } catch (err) {
-                    console.error("Error fetching trip details", err);
-                }
-            };
-            fetchTrip();
         } else {
-            // Show ALL/Global expenses logic?
-            // If no trip selected, let's show all expenses but indicate it's "All"
             setExpenses(allExpenses);
             calculateStats(allExpenses);
-            setCurrentTrip(null);
         }
     }, [selectedTripId, allExpenses]);
+
+    // 3. Subscribe to Trip Info (Real-time sync)
+    useEffect(() => {
+        if (!selectedTripId) {
+            setCurrentTrip(null);
+            return;
+        }
+
+        const unsub = onSnapshot(doc(db, 'itineraries', selectedTripId), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setCurrentTrip({
+                    id: docSnap.id,
+                    ...data,
+                    startDate: data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate),
+                    endDate: data.endDate?.toDate ? data.endDate.toDate() : new Date(data.endDate),
+                } as Itinerary);
+            } else {
+                setCurrentTrip(null);
+            }
+        }, (error) => {
+            console.error("Error subscribing to trip:", error);
+        });
+
+        return () => unsub();
+    }, [selectedTripId]);
 
     const calculateStats = (data: Expense[]) => {
         const total = data.reduce((sum, item) => sum + item.amount, 0);
