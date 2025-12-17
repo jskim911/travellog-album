@@ -20,35 +20,35 @@ export const RoadmapPage: React.FC = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex p-1 bg-slate-100 rounded-xl mb-8 w-full sm:w-fit">
+            <div className="flex p-1 bg-slate-100 rounded-xl mb-6 w-full sm:w-fit overflow-x-auto scrollbar-hide">
                 <button
                     onClick={() => setActiveTab('itinerary')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'itinerary'
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'itinerary'
                         ? 'bg-white text-violet-600 shadow-sm'
                         : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
-                    <Calendar size={18} />
+                    <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
                     여행 일정
                 </button>
                 <button
                     onClick={() => setActiveTab('expenses')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'expenses'
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'expenses'
                         ? 'bg-white text-emerald-600 shadow-sm'
                         : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
-                    <DollarSign size={18} />
+                    <DollarSign size={16} className="sm:w-[18px] sm:h-[18px]" />
                     비용 관리
                 </button>
                 <button
                     onClick={() => setActiveTab('materials')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'materials'
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'materials'
                         ? 'bg-white text-blue-600 shadow-sm'
                         : 'text-slate-500 hover:text-slate-700'
                         }`}
                 >
-                    <FileText size={18} />
+                    <FileText size={16} className="sm:w-[18px] sm:h-[18px]" />
                     자료 보관함
                 </button>
             </div>

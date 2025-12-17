@@ -395,14 +395,14 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                             </div>
                         ) : (
                             expenses.map((expense) => (
-                                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform flex-shrink-0">
+                                <div key={expense.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors group gap-3 sm:gap-4">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform flex-shrink-0">
                                             {getCategoryIcon(expense.category)}
                                         </div>
                                         <div>
                                             <h4 className="font-bold text-slate-800 text-sm line-clamp-1 break-all">{expense.description}</h4>
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
+                                            <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 flex-wrap">
                                                 <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">
                                                     {new Date(expense.date).toLocaleDateString()}
                                                 </span>
@@ -430,24 +430,24 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId }
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-[4rem] sm:pl-0">
-                                        <span className="font-black text-slate-900 text-lg md:text-xl truncate max-w-[150px] sm:max-w-none text-right">
+                                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto pl-[3.25rem] sm:pl-0">
+                                        <span className="font-black text-slate-900 text-base sm:text-xl truncate max-w-[150px] sm:max-w-none text-right">
                                             {formatCurrency(expense.amount, expense.currency)}
                                         </span>
                                         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
                                             <button
                                                 onClick={() => handleEdit(expense)}
-                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
+                                                className="p-1.5 sm:p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
                                                 title="수정"
                                             >
-                                                <Pencil size={18} />
+                                                <Pencil size={16} className="sm:w-[18px] sm:h-[18px]" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(expense.id)}
-                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                                className="p-1.5 sm:p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                                                 title="삭제"
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                                             </button>
                                         </div>
                                     </div>

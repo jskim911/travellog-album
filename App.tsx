@@ -260,18 +260,6 @@ const App: React.FC = () => {
 
             {/* User Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Mobile Navigation Toggle (Simple version for now) */}
-              {user && userStatus === 'approved' && (
-                <div className="flex md:hidden mr-2">
-                  <button
-                    onClick={() => setCurrentPage(currentPage === 'gallery' ? 'roadmap' : 'gallery')}
-                    className="p-2 bg-slate-100 rounded-full text-violet-600"
-                  >
-                    {currentPage === 'gallery' ? <Map size={20} /> : <ImageIcon size={20} />}
-                  </button>
-                </div>
-              )}
-
               {authLoading ? (
                 <div className="w-10 h-10 rounded-full bg-slate-100 animate-pulse" />
               ) : user ? (
@@ -346,6 +334,36 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Navigation Tabs */}
+        {user && userStatus === 'approved' && (
+          <div className="md:hidden border-t border-slate-100 bg-white/50 backdrop-blur-sm">
+            <div className="w-full flex">
+              <button
+                onClick={() => setCurrentPage('gallery')}
+                className={`flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all relative ${currentPage === 'gallery' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
+                  }`}
+              >
+                <ImageIcon size={18} />
+                갤러리
+                {currentPage === 'gallery' && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-600" />
+                )}
+              </button>
+              <button
+                onClick={() => setCurrentPage('roadmap')}
+                className={`flex-1 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all relative ${currentPage === 'roadmap' ? 'text-violet-600 bg-violet-50/50' : 'text-slate-500'
+                  }`}
+              >
+                <Map size={18} />
+                로드맵
+                {currentPage === 'roadmap' && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-600" />
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="w-full px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">

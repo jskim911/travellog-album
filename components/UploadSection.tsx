@@ -268,8 +268,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal }
               <span className="text-white text-sm font-bold">TravelLog</span>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight">
-              여행의 순간을<br />영원히 간직하세요
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight break-keep">
+              여행의 순간을 영원히 간직하세요
             </h2>
 
             <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
