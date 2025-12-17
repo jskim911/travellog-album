@@ -24,7 +24,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
 
     // Trip Info for PDF and Header
     const [currentTrip, setCurrentTrip] = useState<Itinerary | null>(null);
-    const [participantCount, setParticipantCount] = useState(1);
+    const participantCount = currentTrip?.participantCount || 1;
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
@@ -208,21 +208,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                         <Users size={16} />
                         <span>여행 인원</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setParticipantCount(prev => Math.max(1, prev - 1))}
-                            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 transition-colors"
-                        >
-                            -
-                        </button>
-                        <span className="w-8 text-center font-bold text-slate-800">{participantCount}</span>
-                        <button
-                            onClick={() => setParticipantCount(prev => prev + 1)}
-                            className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600 transition-colors"
-                        >
-                            +
-                        </button>
-                    </div>
+                    <span className="w-8 text-center font-bold text-slate-800">{participantCount}명</span>
                 </div>
 
                 {!isCompact && (
@@ -242,8 +228,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 <div className="border-b-2 border-slate-100 pb-6 mb-8">
                     {currentTrip ? (
                         <>
-                            <h1 className={`${isCompact ? 'text-lg' : 'text-4xl'} font-black text-slate-900 mb-3 tracking-tight break-keep leading-tight`}>
-                                {currentTrip.tripName}
+                            <h1 className={`${isCompact ? 'text-lg' : 'text-4xl'} font-black text-slate-900 mb-3 tracking-tight truncate`}>
+                                {currentTrip.tripName}({participantCount}명)
                             </h1>
                             {!isCompact && (
                                 <div className="flex flex-wrap items-center gap-4 text-slate-500 font-medium mb-6 text-sm sm:text-base">

@@ -85,6 +85,7 @@ export interface Itinerary {
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date;
+  participantCount?: number;
 }
 
 export type ExpenseCategory = 'food' | 'transport' | 'accommodation' | 'shopping' | 'activity' | 'flight' | 'other';

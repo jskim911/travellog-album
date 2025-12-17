@@ -37,6 +37,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     const [editTripTitle, setEditTripTitle] = useState('');
     const [editTripStart, setEditTripStart] = useState('');
     const [editTripEnd, setEditTripEnd] = useState('');
+    const [editTripParticipantCount, setEditTripParticipantCount] = useState(1);
+
+    // New Trip Form State - Participant Count
+    const [newTripParticipantCount, setNewTripParticipantCount] = useState(1);
 
     // Place Input State
     const [isAddingPlace, setIsAddingPlace] = useState(false);
@@ -133,6 +137,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 startDate: start,
                 endDate: end,
                 routes,
+                participantCount: newTripParticipantCount,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 expiresAt: new Date(end.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -147,6 +152,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
             setNewTripTitle('');
             setNewTripStartDate('');
             setNewTripEndDate('');
+            setNewTripParticipantCount(1);
         } catch (error) {
             console.error("Error creating trip:", error);
             alert("여행 생성 실패");
@@ -192,6 +198,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 startDate: start,
                 endDate: end,
                 routes: updatedRoutes,
+                participantCount: editTripParticipantCount,
                 updatedAt: serverTimestamp()
             });
 
@@ -213,6 +220,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
         };
         setEditTripStart(formatDate(currentTrip.startDate));
         setEditTripEnd(formatDate(currentTrip.endDate));
+        setEditTripParticipantCount(currentTrip.participantCount || 1);
         setIsEditingTripInfo(true);
     };
 
@@ -376,6 +384,26 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 />
                             </div>
                         </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">여행 인원</label>
+                            <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl">
+                                <button
+                                    type="button"
+                                    onClick={() => setNewTripParticipantCount(Math.max(1, newTripParticipantCount - 1))}
+                                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-slate-600 hover:bg-slate-50"
+                                >
+                                    -
+                                </button>
+                                <span className="flex-1 text-center font-bold text-slate-800">{newTripParticipantCount}명</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewTripParticipantCount(newTripParticipantCount + 1)}
+                                    className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm font-bold text-slate-600 hover:bg-slate-50"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex gap-2 mt-6">
                         {allTrips.length > 0 && (
@@ -394,8 +422,8 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             생성하기
                         </button>
                     </div>
-                </form>
-            </div>
+                </form >
+            </div >
         );
     }
 
@@ -509,6 +537,26 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             />
                                         </div>
                                     </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">여행 인원</label>
+                                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditTripParticipantCount(Math.max(1, editTripParticipantCount - 1))}
+                                                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 font-bold"
+                                            >
+                                                -
+                                            </button>
+                                            <span className="flex-1 text-center text-sm font-bold text-slate-800">{editTripParticipantCount}명</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditTripParticipantCount(editTripParticipantCount + 1)}
+                                                className="w-7 h-7 flex items-center justify-center bg-white rounded shadow-sm text-slate-600 font-bold"
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="flex justify-end gap-2 pt-2">
                                         <button onClick={() => setIsEditingTripInfo(false)} className="px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg">취소</button>
                                         <button onClick={handleUpdateTripInfo} className="px-3 py-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg shadow-sm">저장하기</button>
@@ -528,11 +576,11 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 {!isSmartphoneMode && (
                                     <div className="flex items-center gap-2 text-slate-500 text-base font-medium">
                                         <CalendarIcon size={14} />
-                                        <span>
-                                            {new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}
-                                        </span>
+                                        <span>{new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}</span>
                                         <span className="w-1 h-1 bg-slate-300 rounded-full mx-1" />
                                         <span>{currentTrip.routes.length} Days</span>
+                                        <span className="w-1 h-1 bg-slate-300 rounded-full mx-1" />
+                                        <span>{currentTrip.participantCount || 1}명</span>
                                     </div>
                                 )}
                             </div>
