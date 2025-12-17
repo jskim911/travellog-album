@@ -50,21 +50,6 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
         }
     };
 
-    const renderRating = (rating?: number) => {
-        if (!rating) return null;
-        return (
-            <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                        key={i}
-                        size={12}
-                        className={`${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'}`}
-                    />
-                ))}
-            </div>
-        );
-    };
-
     return (
         <div
             onClick={() => isSelectionMode && onToggleSelect && onToggleSelect(album)}
@@ -145,13 +130,6 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                         </button>
                     </div>
                 )}
-
-                {/* Rating Badge (Top Left) */}
-                {!isSelectionMode && album.rating && album.rating > 0 && (
-                    <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full shadow-md">
-                        {renderRating(album.rating)}
-                    </div>
-                )}
             </div>
 
             {/* Content - One Line Layout */}
@@ -179,6 +157,6 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

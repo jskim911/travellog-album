@@ -563,6 +563,7 @@ const App: React.FC = () => {
                             isSelectionMode={isSelectionMode}
                             isSelected={selectedAlbumIds.has(album.id)}
                             onToggleSelect={toggleAlbumSelection}
+                            showMetadata={!isSmartphoneMode}
                           />
                         ))}
                       </div>
@@ -580,6 +581,7 @@ const App: React.FC = () => {
                       isSelectionMode={isSelectionMode}
                       isSelected={selectedAlbumIds.has(album.id)}
                       onToggleSelect={toggleAlbumSelection}
+                      showMetadata={!isSmartphoneMode}
                     />
                   ))}
                 </div>
