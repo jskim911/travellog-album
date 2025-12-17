@@ -203,13 +203,15 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header / Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
-                    <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
-                        <Users size={16} />
-                        <span>여행 인원</span>
+                {!isCompact && (
+                    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-2 text-slate-500 font-bold text-sm">
+                            <Users size={16} />
+                            <span>여행 인원</span>
+                        </div>
+                        <span className="w-8 text-center font-bold text-slate-800">{participantCount}명</span>
                     </div>
-                    <span className="w-8 text-center font-bold text-slate-800">{participantCount}명</span>
-                </div>
+                )}
 
                 {!isCompact && (
                     <button
