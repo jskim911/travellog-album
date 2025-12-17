@@ -360,7 +360,7 @@ const App: React.FC = () => {
                   }`}
               >
                 <Home size={18} />
-                홈
+                갤러리
                 {currentPage === 'gallery' && (
                   <div className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-600" />
                 )}
