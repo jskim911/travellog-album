@@ -194,9 +194,9 @@ const App: React.FC = () => {
                 </div>
               </div>
               {user && userStatus === 'approved' && (
-                <div className="hidden md:flex ml-10 p-1.5 bg-slate-200/50 rounded-2xl text-[15px]">
-                  <button onClick={() => setCurrentPage('gallery')} className={`px-8 py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'gallery' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>갤러리</button>
-                  <button onClick={() => setCurrentPage('roadmap')} className={`px-8 py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'roadmap' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>로드맵</button>
+                <div className="flex ml-2 sm:ml-10 p-1 sm:p-1.5 bg-slate-200/50 rounded-2xl text-[13px] sm:text-[15px]">
+                  <button onClick={() => setCurrentPage('gallery')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'gallery' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>갤러리</button>
+                  <button onClick={() => setCurrentPage('roadmap')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'roadmap' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>로드맵</button>
                 </div>
               )}
             </div>
@@ -331,6 +331,52 @@ const App: React.FC = () => {
           </>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation - md 미만에서만 표시 */}
+      {user && userStatus === 'approved' && (
+        <nav className="mobile-bottom-nav" style={{
+          background: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(226, 232, 240, 0.6)',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.06)'
+        }}>
+          <div className="flex items-center justify-around px-2 py-1" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+            <button
+              onClick={() => setCurrentPage('gallery')}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl transition-all"
+              style={{
+                color: currentPage === 'gallery' ? '#6366f1' : '#94a3b8',
+                background: currentPage === 'gallery' ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
+              }}
+            >
+              <Home size={22} strokeWidth={currentPage === 'gallery' ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>홈</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentPage('roadmap')}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl transition-all"
+              style={{
+                color: currentPage === 'roadmap' ? '#6366f1' : '#94a3b8',
+                background: currentPage === 'roadmap' ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
+              }}
+            >
+              <Map size={22} strokeWidth={currentPage === 'roadmap' ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>로드맵</span>
+            </button>
+
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl transition-all"
+              style={{ color: '#94a3b8' }}
+            >
+              <UserIcon size={22} strokeWidth={2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>메뉴</span>
+            </button>
+          </div>
+        </nav>
+      )}
 
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <SignupModal isOpen={isSignupModalOpen} onClose={() => setIsSignupModalOpen(false)} onSwitchToLogin={() => { setIsSignupModalOpen(false); setIsLoginModalOpen(true); }} />
