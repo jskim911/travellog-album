@@ -119,20 +119,20 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
           console.error('AI 분석 실패:', error);
         }
 
-        // 이미지 압축
-        setProgressMessage(`'${file.name}' 압축 중... (${fileIndex + 1}/${selectedFiles.length})`);
+        // 이미지 압축 (강화된 설정)
+        setProgressMessage(`'${file.name}' 최적화 중... (${fileIndex + 1}/${selectedFiles.length})`);
         const compressionOptions = {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 1920,
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1280,
           useWebWorker: true
         };
 
         const compressedFile = await imageCompression(file, compressionOptions);
 
-        // 썸네일 생성
+        // 썸네일 생성 (강화된 설정)
         const thumbnailOptions = {
-          maxSizeMB: 0.2,
-          maxWidthOrHeight: 400,
+          maxSizeMB: 0.1,
+          maxWidthOrHeight: 300,
           useWebWorker: true
         };
         const thumbnailFile = await imageCompression(file, thumbnailOptions);
@@ -217,13 +217,13 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
 
   if (!user) {
     return (
-      <div className="bg-gradient-to-br from-violet-50 to-blue-50 rounded-2xl border border-violet-100 p-6 sm:p-8 text-center backdrop-blur-sm">
+      <div className="bg-gradient-to-br from-indigo-50 to-sky-50 rounded-2xl border border-indigo-100 p-6 sm:p-8 text-center backdrop-blur-sm">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-violet-500 to-blue-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-violet-200">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
             <Camera size={32} className="sm:w-10 sm:h-10" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
+            <h2 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 to-sky-600 bg-clip-text text-transparent">
               여행의 순간을 기록하세요
             </h2>
             <p className="text-slate-600 mt-2 text-sm sm:text-base">
@@ -232,7 +232,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
           </div>
           <button
             onClick={onOpenLoginModal}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-blue-600 text-white rounded-full font-bold shadow-lg shadow-violet-200 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-full font-bold shadow-lg shadow-indigo-200 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
           >
             <LogIn size={20} />
             <span>시작하기</span>
@@ -243,185 +243,116 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200/60 w-full">
-      <div className={`grid ${isCompact ? 'grid-cols-1' : 'md:grid-cols-[5fr_4fr]'} gap-0`}>
-        {/* Left Side - Travel Inspiration (Hidden or highly compacted in Compact Mode) */}
-        {!isCompact ? (
-          <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-blue-600 p-6 grid grid-cols-2 overflow-hidden min-h-[200px]">
-            {/* Animated Background Pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white rounded-full animate-pulse"></div>
-              <div className="absolute bottom-20 right-10 w-24 h-24 border-4 border-white rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
-              <div className="absolute top-1/2 left-1/4 w-16 h-16 border-4 border-white rotate-45 animate-spin" style={{ animationDuration: '20s' }}></div>
-              <div className="absolute top-1/4 right-1/3 w-20 h-20 border-4 border-white rounded-full animate-bounce" style={{ animationDuration: '4s' }}></div>
-            </div>
-
-            {/* Gradient Overlay Animation */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" style={{ animationDuration: '5s' }}></div>
-
-            {/* Content */}
-            {/* Content Group 1: Title & Desc (Left) */}
-            <div className="relative z-10 flex flex-col justify-center items-start pl-2 sm:pl-4 animate-in fade-in slide-in-from-left-5 duration-700">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full mb-4">
-                <Camera size={16} className="text-white" />
-                <span className="text-white text-sm font-bold">TravelLog</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight tracking-tight break-keep">
-                여행의 순간을 영원히 기억하세요
-              </h2>
-
-              <p className="text-white/90 text-sm sm:text-base leading-relaxed font-medium">
-                추억을 기록하고<br />언제든 떠올려보세요.
-              </p>
-            </div>
-
-            {/* Content Group 2: Features & Icons (Center of Right Half) */}
-            <div className="relative z-10 flex flex-col justify-center items-center gap-6">
-              {/* Features */}
-              <div className="space-y-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm shadow-inner border border-white/10">
-                <div className="flex items-center gap-3 text-white font-bold text-sm">
-                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                    <CheckCircle2 size={14} className="text-violet-600" />
-                  </div>
-                  <span>장소별 자동 분류</span>
-                </div>
-                <div className="flex items-center gap-3 text-white font-bold text-sm">
-                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                    <CheckCircle2 size={14} className="text-violet-600" />
-                  </div>
-                  <span>무제한 사진 저장</span>
-                </div>
-                <div className="flex items-center gap-3 text-white font-bold text-sm">
-                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                    <CheckCircle2 size={14} className="text-violet-600" />
-                  </div>
-                  <span>추억 비디오 제작</span>
-                </div>
-              </div>
-
-              {/* Icons */}
-              <div className="flex gap-3">
-                {['✈️', '🏖️', '🗺️', '📸'].map((emoji, i) => (
-                  <div key={i} className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 hover:scale-110 transition-all cursor-pointer shadow-lg">
-                    <span className="text-lg">{emoji}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+    <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-slate-200/60 w-full p-6 sm:p-10">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <Upload size={22} className="text-white" />
           </div>
-        ) : (
-          // Compact Banner Mode
-          <div className="bg-gradient-to-r from-violet-600 to-blue-600 p-4 flex items-center justify-between text-white">
-            <div className="flex items-center gap-3">
-              <Camera size={20} className="text-white/80" />
-              <div>
-                <h2 className="font-bold text-lg leading-none">사진 업로드</h2>
-                <p className="text-xs text-white/70 mt-0.5">여행의 추억을 기록하세요</p>
-              </div>
-            </div>
-            <Sparkles size={18} className="text-yellow-300 animate-pulse" />
+          <div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">사진 업로드</h3>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Moment Capture System</p>
           </div>
-        )}
+        </div>
 
-        {/* Right Side - Upload Functionality */}
-        <div className="p-6 sm:p-8 bg-gradient-to-br from-slate-50 to-white">
-          {!isCompact && (
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-blue-500 rounded-xl flex items-center justify-center shadow-md">
-                <Upload size={20} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">사진 업로드</h3>
-                <p className="text-xs text-slate-500">여행 추억을 저장하세요</p>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {selectedFiles.length === 0 ? (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-8 border-2 border-dashed border-slate-300 rounded-2xl hover:border-violet-400 hover:bg-violet-50/50 transition-all group"
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-gradient-to-br from-violet-100 to-blue-100 group-hover:from-violet-200 group-hover:to-blue-200 rounded-2xl flex items-center justify-center transition-all">
-                    <Upload className="w-8 h-8 text-violet-600" />
+        <div className="space-y-6">
+          {selectedFiles.length === 0 ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full group"
+            >
+              <div className="relative overflow-hidden py-12 border-2 border-dashed border-slate-200 rounded-[2rem] hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-500">
+                <div className="flex flex-col items-center gap-4 relative z-10">
+                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-50 to-sky-50 group-hover:from-indigo-100 group-hover:to-sky-100 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-inner">
+                    <Upload className="w-10 h-10 text-indigo-600 group-hover:scale-110 transition-transform duration-500" />
                   </div>
                   <div>
-                    <p className="text-base font-bold text-slate-700 group-hover:text-violet-600 transition-colors">
-                      사진 선택하기
+                    <p className="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      여행 사진 선택하기
                     </p>
-                    <p className="text-sm text-slate-400 mt-1">또는 드래그 & 드롭</p>
+                    <p className="text-sm text-slate-400 font-medium mt-1">또는 화면으로 파일을 끌어오세요</p>
                   </div>
                 </div>
-              </button>
-            ) : (
-              <>
-                {/* Selected Files Preview */}
-                <div className="bg-white rounded-xl p-4 border border-slate-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-bold text-slate-700">
-                      선택된 사진 ({selectedFiles.length}장)
+              </div>
+            </button>
+          ) : (
+            <div className="space-y-5">
+              {/* Selected Files Preview */}
+              <div className="bg-slate-50/50 rounded-3xl p-5 border border-slate-200/60">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <span className="text-sm font-black text-slate-800">
+                      선택된 이미지 ({selectedFiles.length})
                     </span>
-                    <button
-                      onClick={() => setSelectedFiles([])}
-                      className="text-xs text-red-500 hover:text-red-600 font-medium"
-                    >
-                      전체 삭제
-                    </button>
                   </div>
-
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                    {selectedFiles.slice(0, 5).map((file, idx) => (
-                      <div key={`${file.name}-${idx}`} className="relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-200 group">
-                        <FilePreview file={file} />
-                        <button
-                          onClick={() => removeFile(idx)}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                        >
-                          <X size={20} className="text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    {selectedFiles.length > 5 && (
-                      <div className="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500 text-sm font-bold">
-                        +{selectedFiles.length - 5}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-violet-300 bg-violet-50 flex items-center justify-center hover:bg-violet-100 transition-colors"
-                    >
-                      <PlusCircle size={28} className="text-violet-600" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setSelectedFiles([])}
+                    className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors"
+                  >
+                    전체 취소
+                  </button>
                 </div>
 
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                  {selectedFiles.slice(0, 5).map((file, idx) => (
+                    <div key={`${file.name}-${idx}`} className="relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform hover:scale-105 group">
+                      <FilePreview file={file} />
+                      <button
+                        onClick={() => removeFile(idx)}
+                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]"
+                      >
+                        <X size={20} className="text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {selectedFiles.length > 5 && (
+                    <div className="flex-shrink-0 w-24 h-24 rounded-2xl border-2 border-white bg-slate-100 flex items-center justify-center text-slate-500 font-black shadow-sm">
+                      +{selectedFiles.length - 5}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-indigo-200 bg-white flex items-center justify-center hover:border-indigo-400 hover:bg-indigo-50 transition-all shadow-sm group"
+                  >
+                    <PlusCircle size={32} className="text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Date Input */}
-                <div className="relative mb-3">
-                  <input
-                    type="date"
-                    value={dateInput}
-                    onChange={(e) => setDateInput(e.target.value)}
-                    className="w-full px-4 py-3 pl-11 rounded-xl border-2 border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all bg-white font-medium text-slate-700"
-                  />
-                  <Calendar size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <div className="relative font-bold mt-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">여행 날짜</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dateInput}
+                      onChange={(e) => setDateInput(e.target.value)}
+                      className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm"
+                    />
+                    <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
 
                 {/* Location Input */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={locationInput}
-                    onChange={(e) => setLocationInput(e.target.value)}
-                    placeholder="여행 장소 (예: 제주도, 파리)"
-                    className="w-full px-4 py-3 pl-11 rounded-xl border-2 border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all bg-white font-medium"
-                  />
-                  <MapPin size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <div className="relative font-bold mt-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">방문 장소</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={locationInput}
+                      onChange={(e) => setLocationInput(e.target.value)}
+                      placeholder="예: 제주도, 파리"
+                      className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm"
+                    />
+                    <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
+              </div>
 
-                {/* AI Suggestions */}
+              {/* AI Suggestions & Custom Caption moved to a refined container */}
+              <div className="space-y-4">
                 {(aiSuggestions.length > 0 || loadingAI) && (
                   <AISuggestions
                     suggestions={aiSuggestions}
@@ -439,80 +370,73 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
                   />
                 )}
 
-                {/* Custom Caption Input */}
-                {selectedFiles.length > 0 && (
-                  <div className="relative">
-                    <textarea
-                      value={customCaption}
-                      onChange={(e) => {
-                        setCustomCaption(e.target.value);
-                        if (e.target.value) {
-                          setSelectedCaption('');
-                        }
-                      }}
-                      placeholder={selectedCaption || "또는 직접 소감을 입력하세요..."}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none transition-all bg-white font-medium resize-none"
-                      rows={3}
-                    />
-                    {customCaption && (
-                      <div className="absolute top-2 right-2 text-xs text-slate-400">
-                        {customCaption.length}자
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="relative">
+                  <textarea
+                    value={customCaption}
+                    onChange={(e) => {
+                      setCustomCaption(e.target.value);
+                      if (e.target.value) setSelectedCaption('');
+                    }}
+                    placeholder={selectedCaption || "여행의 소중한 감상을 한 마디 적어주세요..."}
+                    className="w-full px-5 py-4 rounded-3xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white font-medium resize-none shadow-sm min-h-[120px]"
+                  />
+                  {customCaption && (
+                    <div className="absolute bottom-4 right-5 text-[10px] text-slate-400 font-bold font-mono">
+                      {customCaption.length} CHARS
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {/* Progress Message */}
-                {progressMessage && (
-                  <div className="text-sm text-center text-violet-600 font-medium py-3 bg-violet-50 rounded-xl border border-violet-100">
-                    {progressMessage}
-                  </div>
-                )}
+              {/* Progress Message */}
+              {progressMessage && (
+                <div className="text-[11px] text-center text-indigo-600 font-black tracking-widest py-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex items-center justify-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                  {progressMessage.toUpperCase()}
+                </div>
+              )}
 
-                {/* Upload Button */}
-                <button
-                  onClick={handleUpload}
-                  disabled={uploadStatus === 'uploading' || uploadStatus === 'success'}
-                  className={`
-                    w-full py-4 rounded-xl text-base font-bold text-white shadow-lg flex items-center justify-center gap-2 transition-all
+              {/* Upload Button */}
+              <button
+                onClick={handleUpload}
+                disabled={uploadStatus === 'uploading' || uploadStatus === 'success'}
+                className={`
+                    w-full py-4 rounded-2xl text-base font-black text-white shadow-xl flex items-center justify-center gap-3 transition-all duration-300
                     ${uploadStatus === 'success'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                      : 'bg-gradient-to-r from-violet-600 to-blue-600 hover:shadow-xl hover:shadow-violet-200'}
-                    ${uploadStatus === 'uploading' ? 'opacity-80 cursor-wait' : 'transform hover:-translate-y-0.5 active:scale-95'}
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200'
+                    : 'btn-premium'}
+                    ${uploadStatus === 'uploading' ? 'opacity-80 cursor-wait' : 'transform active:scale-95'}
                   `}
-                >
-                  {uploadStatus === 'uploading' && (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      업로드 중...
-                    </>
-                  )}
-                  {uploadStatus === 'success' && (
-                    <>
-                      <CheckCircle2 size={20} />
-                      완료!
-                    </>
-                  )}
-                  {uploadStatus === 'idle' && (
-                    <>
-                      <Upload size={20} />
-                      {selectedFiles.length}장 업로드하기
-                    </>
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-
-          <input
-            type="file"
-            multiple
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
+              >
+                {uploadStatus === 'uploading' ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    SYSTEM UPLOADING...
+                  </>
+                ) : uploadStatus === 'success' ? (
+                  <>
+                    <CheckCircle2 size={20} />
+                    SAVED SUCCESSFULLY
+                  </>
+                ) : (
+                  <>
+                    <Upload size={20} />
+                    <span>{selectedFiles.length}장의 사진 기록하기</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
+
+        <input
+          type="file"
+          multiple
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          onChange={handleFileChange}
+        />
       </div>
     </div>
   );

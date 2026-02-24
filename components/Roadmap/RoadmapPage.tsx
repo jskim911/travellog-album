@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, Map, FileText } from 'lucide-react';
+import { Calendar, DollarSign, Map, FileText, ArrowLeft } from 'lucide-react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -12,12 +12,14 @@ interface RoadmapPageProps {
     isSmartphoneMode?: boolean;
     selectedTripId: string | null;
     onSelectTrip: (id: string | null) => void;
+    onBack?: () => void;
 }
 
 export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     isSmartphoneMode = false,
     selectedTripId,
-    onSelectTrip
+    onSelectTrip,
+    onBack
 }) => {
     const { user, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
@@ -52,12 +54,6 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 // Sort by startDate descending (newest first)
                 trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
                 setAllTrips(trips);
-
-                // AUTO SELECT LOGIC:
-                // If no trip is selected, automatically select the most recent one.
-                if (!selectedTripId && trips.length > 0) {
-                    onSelectTrip(trips[0].id);
-                }
             } else {
                 setAllTrips([]);
             }
@@ -75,12 +71,23 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     return (
         <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? '' : ''}`}>
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-1 flex items-center gap-2">
-                    <Map className="text-violet-600 w-6 h-6 sm:w-8 sm:h-8" />
-                    여행 로드맵
-                </h1>
-                <p className="text-xs text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
+            <div className="mb-6 flex items-center gap-4">
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-2xl transition-all shadow-sm group"
+                        title="갤러리로 돌아가기"
+                    >
+                        <ArrowLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+                    </button>
+                )}
+                <div>
+                    <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-1 flex items-center gap-2">
+                        <Map className="text-violet-600 w-6 h-6 sm:w-8 sm:h-8" />
+                        여행 로드맵
+                    </h1>
+                    <p className="text-xs text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
+                </div>
             </div>
 
             {/* Navigation Tabs */}
@@ -132,6 +139,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                                 onSelectTrip={onSelectTrip}
                                 isSmartphoneMode={isSmartphoneMode}
                                 allTrips={allTrips}
+                                onBack={onBack}
                             />
                         ) : activeTab === 'expenses' ? (
                             <ExpenseSection

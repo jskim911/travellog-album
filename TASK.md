@@ -19,6 +19,16 @@
 - [x] **TASK-010**: 사용자 승인 상태 관리 (`pending` -> `approved`)
 - [x] **TASK-011**: 관리자 패널 구현 (`AdminPanel.tsx`) (Added: Admin Info Header)
 
+- [x] **Phase 11: 로드맵 '뒤로 가기' 및 작성 '취소' 기능 고도화** ✅
+- [x] **Phase 12: 상세 일정 자동 생성 및 동적 입력 폼 구현** ✅
+- [x] **Phase 13: 시간 입력 방식 고도화 (오전/오후 구분)** ✅
+- [x] **Phase 14: 시간 입력 방식 단순화 (24시간 직접 입력)** ✅
+- [x] **Phase 15: 모든 입력 필드 포커스 확대 효과 적용** ✅
+- [x] **Phase 16: 날짜 입력 자릿수 자동 이동 (Auto-jump) 기능** ✅
+    - [x] `ItinerarySection.tsx`: 시작일/종료일 입력창 분리 및 자동 포커스 로직 구현
+    - [x] 입력된 컴포넌트 날짜의 `YYYY-MM-DD` 변환 처리
+    - [x] 확대 효과 통합 및 검증
+
 ## 🖼️ Phase 2: 사진 관리 기능 (Complete)
 - [x] **TASK-016**: Gemini API 연동 (`gemini.ts`)
 - [x] **TASK-017**: 사진 분석 및 캡션 생성 (AI)

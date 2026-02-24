@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Calendar, DollarSign, Tag, FileText, Check, Loader2 } from 'lucide-react';
+import { X, Camera, Check, Loader2 } from 'lucide-react';
 import { Expense, ExpenseCategory, Currency } from '../../types';
 import { extractReceiptData } from '../../src/utils/gemini';
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
@@ -145,154 +145,147 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
     ];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[95vh] flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                    <h2 className="text-xl font-bold text-slate-900">
-                        {expenseToEdit ? '지출 내역 수정' : '비용 추가'}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+                    <h2 className="text-lg font-black text-slate-900">
+                        {expenseToEdit ? '✏️ 지출 수정' : '💸 지출 추가'}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                        <X size={20} className="text-slate-500" />
+                        <X size={18} className="text-slate-400" />
                     </button>
                 </div>
 
-                {/* Scanning Section */}
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-100">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                    />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isScanning}
-                        className="w-full py-3 bg-white border-2 border-dashed border-violet-200 hover:border-violet-400 hover:bg-violet-50 text-violet-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 group"
-                    >
-                        {isScanning ? (
-                            <>
-                                <Loader2 size={20} className="animate-spin" />
-                                <span>영수증 분석 중...</span>
-                            </>
-                        ) : receiptFile || existingReceiptUrl ? (
-                            <>
-                                <Check size={20} className="text-green-500" />
-                                <span className={isAiSuccess ? "text-green-600 font-bold" : "text-slate-600"}>
-                                    {receiptFile
-                                        ? (isAiSuccess ? `AI 입력 완료 (${receiptFile.name})` : `영수증 변경됨 (${receiptFile.name})`)
-                                        : '기존 영수증 유지됨'
-                                    }
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <Camera size={20} className="group-hover:scale-110 transition-transform" />
-                                <span>영수증 스캔하기 (AI)</span>
-                            </>
-                        )}
-                    </button>
-                    <p className="text-[10px] text-center text-slate-400 mt-2">
-                        영수증을 찍으면 날짜, 금액, 상호명을 자동으로 입력합니다.
-                    </p>
-                </div>
+                <div className="overflow-y-auto flex-1">
+                    {/* AI Scan Button - Compact */}
+                    <div className="px-5 pt-4 pb-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isScanning}
+                            className="w-full py-2.5 bg-violet-50 border border-violet-200 hover:border-violet-400 hover:bg-violet-100 text-violet-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
+                        >
+                            {isScanning ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>AI 분석 중...</span>
+                                </>
+                            ) : receiptFile || existingReceiptUrl ? (
+                                <>
+                                    <Check size={16} className="text-green-500" />
+                                    <span className={isAiSuccess ? "text-green-600" : "text-slate-600"}>
+                                        {receiptFile
+                                            ? (isAiSuccess ? 'AI 입력 완료 ✓' : '영수증 첨부됨')
+                                            : '기존 영수증 유지'}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Camera size={16} />
+                                    <span>📷 영수증 스캔 (AI 자동입력)</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* Amount & Currency */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">금액</label>
-                        <div className="flex gap-2">
-                            <select
-                                value={currency}
-                                onChange={(e) => setCurrency(e.target.value as Currency)}
-                                className="px-3 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border-none outline-none focus:ring-2 focus:ring-violet-200"
-                            >
-                                <option value="KRW">KRW</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="JPY">JPY</option>
-                                <option value="CNY">CNY</option>
-                            </select>
-                            <div className="flex-1 relative">
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="px-5 pb-5 pt-2 space-y-4">
+                        {/* Amount - Large & Prominent */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">금액</label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={currency}
+                                    onChange={(e) => setCurrency(e.target.value as Currency)}
+                                    className="px-3 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300"
+                                >
+                                    <option value="KRW">₩ KRW</option>
+                                    <option value="USD">$ USD</option>
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="JPY">¥ JPY</option>
+                                    <option value="CNY">¥ CNY</option>
+                                </select>
                                 <input
                                     type="number"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     placeholder="0"
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-lg font-bold text-slate-900 placeholder-slate-300 border-none outline-none focus:ring-2 focus:ring-violet-200 transition-all"
+                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-xl text-xl font-black text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all"
                                     required
                                 />
-                                <DollarSign size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Description */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">내용 (상호명)</label>
-                        <div className="relative">
+                        {/* Description */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">내용</label>
                             <input
                                 type="text"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="예: 스타벅스 커피"
-                                className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-300 border-none outline-none focus:ring-2 focus:ring-violet-200 transition-all"
+                                placeholder="예: 스타벅스, 택시비, 호텔"
+                                className="w-full px-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all"
                                 required
                             />
-                            <FileText size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         </div>
-                    </div>
 
-                    {/* Date & Category Row */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="flex-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1.5">날짜</label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border-none outline-none focus:ring-2 focus:ring-violet-200"
-                                    required
-                                />
-                                <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        {/* Date */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">날짜</label>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full px-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300"
+                                required
+                            />
+                        </div>
+
+                        {/* Category Chips */}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">카테고리</label>
+                            <div className="grid grid-cols-4 gap-2">
+                                {categories.map(c => (
+                                    <button
+                                        key={c.value}
+                                        type="button"
+                                        onClick={() => setCategory(c.value)}
+                                        className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-xs font-bold transition-all border-2 ${category === c.value
+                                            ? 'bg-violet-50 border-violet-400 text-violet-700 shadow-sm'
+                                            : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'
+                                            }`}
+                                    >
+                                        <span className="text-lg">{c.icon}</span>
+                                        <span className="truncate w-full text-center text-[11px]">{c.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-xs font-bold text-slate-500 mb-1.5">카테고리</label>
-                            <div className="relative">
-                                <select
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border-none outline-none focus:ring-2 focus:ring-violet-200 appearance-none"
-                                >
-                                    {categories.map(c => (
-                                        <option key={c.value} value={c.value}>{c.icon} {c.label}</option>
-                                    ))}
-                                </select>
-                                <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full py-4 mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? (
-                            <Loader2 size={20} className="animate-spin" />
-                        ) : (
-                            <Check size={20} />
-                        )}
-                        <span>
-                            {expenseToEdit ? '수정 완료' : (tripId ? '이 여행 경비로 저장' : '공통 경비로 저장')}
-                        </span>
-                    </button>
-                </form>
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full py-3.5 mt-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <Check size={18} />
+                            )}
+                            <span>
+                                {expenseToEdit ? '수정 완료' : '저장'}
+                            </span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );

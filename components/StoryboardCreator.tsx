@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Download, X, Layout, Grid, List, BookOpen, Type, Sparkles, Save } from 'lucide-react';
+import { Download, X, Layout, Grid, List, BookOpen, Type, Sparkles, Save, Printer, ChevronRight } from 'lucide-react';
 import { Album } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { generatePDFFromElement, downloadPDF } from '../src/utils/pdfGenerator';
 import { convertImageToBase64 } from '../src/utils/imageUtils';
@@ -24,16 +25,13 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
 }) => {
     const { user } = useAuth();
     const [layout, setLayout] = useState<LayoutType>('grid');
-    const [title, setTitle] = useState('나의 여행 이야기');
+    const [title, setTitle] = useState('나의 여행 기록');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [captions, setCaptions] = useState<Record<string, string>>({});
     const [base64Images, setBase64Images] = useState<Record<string, string>>({});
     const previewRef = useRef<HTMLDivElement>(null);
 
-    if (!isOpen) return null;
-
-    // Initialize captions if empty
     React.useEffect(() => {
         const initialCaptions: Record<string, string> = {};
         selectedAlbums.forEach(album => {
@@ -46,14 +44,10 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
         }
     }, [selectedAlbums]);
 
-    // Pre-load images as Base64 for PDF generation
     React.useEffect(() => {
         const loadImages = async () => {
             const promises = selectedAlbums.map(async (album) => {
-                // 이미 Base64가 있으면 스킵
                 if (base64Images[album.id]) return;
-
-                // 변환 시도
                 const base64 = await convertImageToBase64(album.coverUrl);
                 if (base64 !== album.coverUrl) {
                     setBase64Images(prev => ({ ...prev, [album.id]: base64 }));
@@ -61,24 +55,15 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
             });
             await Promise.all(promises);
         };
-
-        if (isOpen) {
-            loadImages();
-        }
+        if (isOpen) loadImages();
     }, [selectedAlbums, isOpen]);
 
     const handleExport = () => {
         if (!previewRef.current) return;
         setIsGenerating(true);
 
-        // 1. Create invisible iframe
         const iframe = document.createElement('iframe');
         iframe.style.position = 'fixed';
-        iframe.style.top = '0';
-        iframe.style.left = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = 'none';
         iframe.style.visibility = 'hidden';
         document.body.appendChild(iframe);
 
@@ -88,58 +73,32 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
             return;
         }
 
-        // 2. Copy all styles (Tailwind, Fonts, etc.)
         const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
-        styles.forEach(style => {
-            doc.head.appendChild(style.cloneNode(true));
-        });
+        styles.forEach(style => doc.head.appendChild(style.cloneNode(true)));
 
-        // 3. Add Print-specific styles
         const printStyle = doc.createElement('style');
         printStyle.innerHTML = `
             @media print {
-                @page { margin: 15mm; size: A4; } /* 모든 페이지에 15mm 여백 강제 */
-                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .break-inside-avoid { page-break-inside: avoid; break-inside: avoid; } /* 사진 짤림 방지 */
+                @page { margin: 15mm; size: A4; }
+                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                .break-inside-avoid { page-break-inside: avoid; }
             }
             body { background: white; }
-            #print-container { 
-                width: 100% !important; 
-                height: auto !important; 
-                margin: 0 !important; 
-                padding: 0 !important; /* 페이지 마진이 있으므로 내부 패딩 제거 */
-                box-shadow: none !important; 
-                transform: none !important;
-            }
+            #print-container { width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; transform: none !important; }
         `;
         doc.head.appendChild(printStyle);
 
-        // 4. Copy Content (Clone to avoid referencing live DOM)
         const contentClone = previewRef.current.cloneNode(true) as HTMLElement;
         contentClone.id = 'print-container';
-
-        // Remove inline styles that might conflict with print layout
-        contentClone.style.width = '100%';
-        contentClone.style.minHeight = 'auto';
-        contentClone.style.height = 'auto';
-        contentClone.style.transform = 'none';
-        contentClone.style.padding = '0';
-        contentClone.style.margin = '0';
-
+        Object.assign(contentClone.style, { width: '100%', height: 'auto', transform: 'none', padding: '0', margin: '0' });
         doc.body.appendChild(contentClone);
 
-        // 5. Wait for images to load in Iframe, then Print
         const images = doc.querySelectorAll('img');
-        const totalImages = images.length;
-        let loadedImages = 0;
-
-        const triggerPrint = () => {
-            // Short delay to ensure rendering
+        let loaded = 0;
+        const trigger = () => {
             setTimeout(() => {
                 iframe.contentWindow?.focus();
                 iframe.contentWindow?.print();
-
-                // Cleanup
                 setTimeout(() => {
                     document.body.removeChild(iframe);
                     setIsGenerating(false);
@@ -147,21 +106,10 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
             }, 500);
         };
 
-        if (totalImages === 0) {
-            triggerPrint();
-        } else {
-            const onImageLoad = () => {
-                loadedImages++;
-                if (loadedImages >= totalImages) triggerPrint();
-            };
-
+        if (images.length === 0) trigger();
+        else {
             images.forEach(img => {
-                if (img.complete) {
-                    onImageLoad();
-                } else {
-                    img.onload = onImageLoad;
-                    img.onerror = onImageLoad;
-                }
+                img.onload = img.onerror = () => { if (++loaded >= images.length) trigger(); };
             });
         }
     };
@@ -170,250 +118,228 @@ export const StoryboardCreator: React.FC<StoryboardCreatorProps> = ({
         if (!previewRef.current) return;
         setIsGenerating(true);
         try {
-            const blob = await generatePDFFromElement(previewRef.current, `${title}.pdf`, {
-                orientation: 'portrait',
-                format: 'a4'
-            });
+            const blob = await generatePDFFromElement(previewRef.current, `${title}.pdf`, { orientation: 'portrait', format: 'a4' });
             downloadPDF(blob, `${title}.pdf`);
         } catch (error) {
-            console.error('PDF Download failed', error);
             alert('PDF 저장에 실패했습니다.');
         } finally {
             setIsGenerating(false);
         }
     };
 
-    const handleCaptionChange = (id: string, text: string) => {
-        setCaptions(prev => ({ ...prev, [id]: text }));
-    };
-
     const handleSave = async () => {
         if (!user) return;
         setIsSaving(true);
         try {
-            const storyboardData = {
-                userId: user.uid,
-                title,
-                layout,
+            await addDoc(collection(db, 'storyboards'), {
+                userId: user.uid, title, layout,
                 photos: selectedAlbums.map(album => ({
-                    photoId: album.id,
-                    url: album.coverUrl,
+                    photoId: album.id, url: album.coverUrl,
                     caption: captions[album.id] || '',
                     location: album.location || ''
                 })),
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            };
-
-            await addDoc(collection(db, 'storyboards'), storyboardData);
+                createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+            });
             alert('스토리보드가 저장되었습니다!');
         } catch (error) {
-            console.error('Failed to save storyboard:', error);
             alert('저장 중 오류가 발생했습니다.');
         } finally {
             setIsSaving(false);
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-slate-50 w-full max-w-6xl h-[90vh] rounded-3xl overflow-hidden flex shadow-2xl">
+    if (!isOpen) return null;
 
-                {/* Left Sidebar: Controls */}
-                <div className="w-80 bg-white border-r border-slate-200 flex flex-col p-6 overflow-y-auto">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                            <BookOpen className="text-violet-600" />
-                            Storybook
-                        </h2>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                            <X size={20} className="text-slate-500" />
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl" />
+
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-[90rem] h-[90vh] bg-slate-50 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col sm:flex-row border border-white/20"
+            >
+                {/* Left Sidebar: Controls Area */}
+                <div className="w-full sm:w-[24rem] bg-white/80 backdrop-blur-md border-r border-slate-200 flex flex-col p-8 overflow-y-auto shrink-0 scrollbar-none">
+                    <div className="flex items-center justify-between mb-10">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                <BookOpen size={24} />
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-800 tracking-tighter">Storybook</h2>
+                        </div>
+                        <button onClick={onClose} className="p-3 bg-slate-100 text-slate-400 rounded-full hover:bg-slate-200 transition-all active:scale-90">
+                            <X size={20} />
                         </button>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Title Input */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">제목</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 focus:border-violet-500 focus:outline-none transition-all"
-                                placeholder="스토리보드 제목"
-                            />
-                        </div>
-
-                        {/* Layout Selection */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">레이아웃</label>
-                            <div className="grid grid-cols-1 gap-2">
-                                <button
-                                    onClick={() => setLayout('grid')}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'grid'
-                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
-                                        }`}
-                                >
-                                    <Grid size={18} />
-                                    <span className="font-bold">Grid View</span>
-                                </button>
-                                <button
-                                    onClick={() => setLayout('timeline')}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'timeline'
-                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
-                                        }`}
-                                >
-                                    <List size={18} />
-                                    <span className="font-bold">Timeline</span>
-                                </button>
-                                <button
-                                    onClick={() => setLayout('magazine')}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${layout === 'magazine'
-                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
-                                        : 'border-slate-200 hover:border-violet-200 text-slate-600'
-                                        }`}
-                                >
-                                    <Layout size={18} />
-                                    <span className="font-bold">Magazine</span>
-                                </button>
+                    <div className="space-y-8 flex-1">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Document Title</label>
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl font-black text-slate-800 focus:outline-none transition-all shadow-inner group-hover:bg-white"
+                                    placeholder="Enter title..."
+                                />
+                                <Type size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" />
                             </div>
                         </div>
 
-                        {/* Selected Photos List (Editable Captions) */}
-                        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
-                                사진별 캡션 ({selectedAlbums.length})
-                            </label>
-                            <div className="overflow-y-auto pr-2 space-y-3 flex-1 scrollbar-thin">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Select Layout</label>
+                            <div className="grid grid-cols-1 gap-2">
+                                {[
+                                    { id: 'grid', icon: Grid, label: 'Modern Grid' },
+                                    { id: 'timeline', icon: List, label: 'Story Timeline' },
+                                    { id: 'magazine', icon: Layout, label: 'Magazine Editorial' }
+                                ].map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setLayout(item.id as LayoutType)}
+                                        className={`flex items-center justify-between px-5 py-4 rounded-2xl border-2 transition-all group ${layout === item.id
+                                                ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-lg shadow-indigo-100'
+                                                : 'border-slate-50 bg-slate-50 hover:bg-white hover:border-indigo-200 text-slate-500'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <item.icon size={20} className={layout === item.id ? 'text-indigo-600' : 'text-slate-400'} />
+                                            <span className="font-black tracking-tight">{item.label}</span>
+                                        </div>
+                                        {layout === item.id && <motion.div layoutId="layout-active" className="w-2 h-2 bg-indigo-600 rounded-full" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Edit Captions ({selectedAlbums.length})</label>
+                            <div className="space-y-3 pb-4">
                                 {selectedAlbums.map((album) => (
-                                    <div key={album.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                        <div className="flex gap-3 mb-2">
-                                            <img src={album.coverUrl} className="w-12 h-12 rounded-lg object-cover bg-slate-200" alt="" />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-bold text-slate-700 truncate">{album.title}</p>
-                                                <p className="text-[10px] text-slate-400">{album.location}</p>
+                                    <div key={album.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 transition-all group">
+                                        <div className="flex gap-4 mb-3">
+                                            <img src={album.coverUrl} className="w-14 h-14 rounded-xl object-cover shadow-sm group-hover:scale-110 transition-transform" />
+                                            <div className="flex-1 min-w-0 py-1">
+                                                <p className="text-sm font-black text-slate-700 truncate">{album.title}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{album.location}</p>
                                             </div>
                                         </div>
                                         <textarea
                                             value={captions[album.id] || ''}
-                                            onChange={(e) => handleCaptionChange(album.id, e.target.value)}
-                                            placeholder="캡션을 입력하세요..."
-                                            className="w-full p-2 text-xs bg-white border border-slate-200 rounded-lg focus:border-violet-400 focus:outline-none resize-none"
-                                            rows={2}
+                                            onChange={(e) => setCaptions(prev => ({ ...prev, [album.id]: e.target.value }))}
+                                            placeholder="Write a story..."
+                                            className="w-full p-3 text-sm bg-white border border-slate-200 rounded-xl focus:border-indigo-300 focus:outline-none resize-none scrollbar-none font-medium h-20 shadow-sm"
                                         />
                                     </div>
                                 ))}
                             </div>
                         </div>
-
-
                     </div>
                 </div>
 
-                {/* Main Area Wrapper */}
-                <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
-                    {/* Scrollable Preview Area */}
-                    <div className="flex-1 overflow-y-auto p-8 flex items-start justify-center">
-                        <div
+                {/* Main Content: Preview Area */}
+                <div className="flex-1 flex flex-col bg-slate-100/50 overflow-hidden">
+                    <div className="flex-1 overflow-auto p-12 flex justify-center scrollbar-thin">
+                        <motion.div
+                            layout
                             ref={previewRef}
-                            className="bg-white shadow-2xl transition-all duration-500 origin-top"
-                            style={{
-                                width: '794px', // A4 width at 96 DPI
-                                minHeight: '1123px', // A4 height at 96 DPI
-                                padding: '60px',
-                                transform: 'scale(0.85)', // Scale down to fit
-                            }}
+                            className="bg-white shadow-[0_32px_96px_-12px_rgba(0,0,0,0.1)] transition-all duration-700 origin-top flex flex-col"
+                            style={{ width: '210mm', minHeight: '297mm', padding: '40mm 25mm' }}
                         >
-                            {/* Live Preview Content */}
-                            <h1 className="text-4xl font-black text-slate-900 mb-4">{title}</h1>
-                            <p className="text-slate-500 mb-12 flex items-center gap-2">
-                                <Sparkles size={16} />
-                                {new Date().toLocaleDateString()}의 기록
-                            </p>
+                            <motion.h1 layout className="text-[4rem] font-black text-slate-900 leading-[0.9] tracking-tighter mb-4">{title}</motion.h1>
+                            <div className="flex items-center gap-3 text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-16 border-b border-slate-100 pb-8">
+                                <Sparkles size={14} className="text-indigo-500" />
+                                <span>Travel Journal</span>
+                                <span className="opacity-30">|</span>
+                                <span>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
 
-                            <div className={`
-                grid gap-6
-                ${layout === 'grid' ? 'grid-cols-2' : ''}
-                ${layout === 'timeline' ? 'grid-cols-1 max-w-2xl mx-auto' : ''}
-                ${layout === 'magazine' ? 'grid-cols-3' : ''}
-                `}>
-                                {selectedAlbums.map((album) => (
-                                    <div key={album.id} className="break-inside-avoid mb-4">
-                                        <div className="relative group overflow-hidden rounded-xl bg-slate-100 mb-3">
+                            <motion.div
+                                layout
+                                className={`
+                                    grid gap-x-12 gap-y-16
+                                    ${layout === 'grid' ? 'grid-cols-2' : ''}
+                                    ${layout === 'timeline' ? 'grid-cols-1 max-w-lg mx-auto' : ''}
+                                    ${layout === 'magazine' ? 'grid-cols-3' : ''}
+                                `}
+                            >
+                                {selectedAlbums.map((album, idx) => (
+                                    <motion.div
+                                        layout
+                                        key={album.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        className="break-inside-avoid relative"
+                                    >
+                                        <div className={`overflow-hidden rounded-sm bg-slate-100 mb-6 ${layout === 'magazine' ? 'aspect-[3/4]' : 'aspect-square'}`}>
                                             <img
                                                 src={base64Images[album.id] || album.coverUrl}
-                                                alt={album.title}
-                                                className="w-full h-auto object-cover"
+                                                alt=""
+                                                className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        {(captions[album.id] || album.title) && (
-                                            <div className={`${layout === 'timeline' ? 'text-center' : ''}`}>
-                                                <p className="text-sm font-medium text-slate-800 leading-relaxed">
-                                                    {captions[album.id] || album.title}
-                                                </p>
-                                                {layout === 'timeline' && (
-                                                    <span className="inline-block mt-2 px-3 py-1 bg-slate-100 rounded-full text-xs text-slate-500 font-medium">
-                                                        {album.location || 'Unknown Location'}
-                                                    </span>
-                                                )}
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-bold text-slate-900 leading-tight uppercase tracking-tight">{album.title}</p>
+                                            <p className="text-xs font-serif text-slate-500 leading-relaxed italic">
+                                                {captions[album.id] || 'No additional caption provided for this memory.'}
+                                            </p>
+                                            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-4 opacity-60">
+                                                {album.location || 'GLOBAL DESTINATION'}
+                                            </p>
+                                        </div>
+                                        {layout === 'timeline' && (
+                                            <div className="absolute -left-12 top-0 bottom-0 w-px bg-slate-100 flex items-center">
+                                                <div className="w-3 h-3 bg-indigo-600 rounded-full -ml-[6px] border-4 border-white shadow-sm" />
                                             </div>
                                         )}
-                                    </div>
+                                    </motion.div>
                                 ))}
-                            </div>
+                            </motion.div>
+                        </motion.div>
+                    </div>
+
+                    {/* Bottom Action Bar */}
+                    <div className="p-6 bg-white/80 backdrop-blur-md border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6 shrink-0">
+                        <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                            <Printer size={14} />
+                            <span>Recommended format: PDF Export (A4 Portrait)</span>
+                        </div>
+
+                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || isGenerating}
+                                className="flex-1 sm:flex-none px-8 py-4 bg-white border-2 border-slate-200 hover:border-indigo-200 text-slate-800 rounded-[1.25rem] font-black shadow-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                {isSaving ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /> : <Save size={20} />}
+                                <span>저장</span>
+                            </button>
+
+                            <button
+                                onClick={handleExport}
+                                disabled={isGenerating || isSaving}
+                                className="flex-1 sm:flex-none px-8 py-4 bg-white border-2 border-slate-200 hover:border-indigo-200 text-slate-800 rounded-[1.25rem] font-black shadow-sm flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                <Printer size={20} />
+                                <span>인쇄</span>
+                            </button>
+
+                            <button
+                                onClick={handleDownloadPDF}
+                                disabled={isGenerating || isSaving}
+                                className="flex-[2] sm:flex-none px-10 py-4 bg-indigo-600 text-white rounded-[1.25rem] font-black shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
+                            >
+                                {isGenerating ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={20} />}
+                                <span>PDF 내보내기</span>
+                            </button>
                         </div>
                     </div>
-
-                    {/* Fixed Bottom Action Bar */}
-                    <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-end gap-3 z-10 shrink-0">
-                        <span className="text-sm text-slate-500 mr-auto pl-2">
-                            * PDF 저장 후 인쇄하시면 더 깔끔합니다.
-                        </span>
-
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving || isGenerating}
-                            className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
-                        >
-                            {isSaving ? (
-                                <div className="w-4 h-4 border-2 border-violet-600/30 border-t-violet-600 rounded-full animate-spin" />
-                            ) : (
-                                <Save size={18} />
-                            )}
-                            <span>저장</span>
-                        </button>
-
-                        <button
-                            onClick={handleExport}
-                            disabled={isGenerating || isSaving}
-                            className="px-6 py-3 bg-white border-2 border-slate-200 hover:border-violet-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70"
-                        >
-                            <Layout size={18} />
-                            <span>인쇄 미리보기</span>
-                        </button>
-
-                        <button
-                            onClick={handleDownloadPDF}
-                            disabled={isGenerating || isSaving}
-                            className="px-8 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg flex items-center gap-2 transition-all transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>생성 중...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Download size={18} />
-                                    <span>PDF 다운로드</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 };
