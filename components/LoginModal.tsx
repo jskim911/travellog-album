@@ -9,13 +9,13 @@ interface LoginModalProps {
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
+    const [id, setId] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const { signInEmail, signUpEmail } = useAuth();
+    const { signInId, signUpId } = useAuth();
 
     if (!isOpen) return null;
 
@@ -26,21 +26,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         try {
             if (isLogin) {
-                await signInEmail(email, password);
+                await signInId(id, password);
             } else {
                 if (!name.trim()) throw new Error("이름을 입력해주세요.");
-                await signUpEmail(email, password, name);
+                await signUpId(id, password, name);
             }
             onClose(); // Close modal on success
             // Reset form
-            setEmail('');
+            setId('');
             setPassword('');
             setName('');
         } catch (err: any) {
-            if (err.code === 'auth/invalid-credential') {
-                setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+            if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+                setError("아이디 또는 비밀번호가 올바르지 않습니다.");
             } else if (err.code === 'auth/email-already-in-use') {
-                setError("이미 사용 중인 이메일입니다.");
+                setError("이미 사용 중인 아이디입니다.");
             } else if (err.code === 'auth/weak-password') {
                 setError("비밀번호는 6자 이상이어야 합니다.");
             } else {
@@ -86,15 +86,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                         )}
 
                         <div className="space-y-1">
-                            <label className="text-xs font-medium text-slate-500 ml-1">이메일</label>
+                            <label className="text-xs font-medium text-slate-500 ml-1">아이디</label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                                 <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    type="text"
+                                    value={id}
+                                    onChange={(e) => setId(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                    placeholder="hello@example.com"
+                                    placeholder="아이디를 입력하세요"
                                     required
                                 />
                             </div>

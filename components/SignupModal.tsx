@@ -13,7 +13,7 @@ interface SignupModalProps {
 
 export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLogin }) => {
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [id, setId] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,8 +34,8 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
             return;
         }
 
-        if (!email.trim() || !email.includes('@')) {
-            setError('올바른 이메일 주소를 입력해주세요.');
+        if (!id.trim()) {
+            setError('아이디를 입력해주세요.');
             setLoading(false);
             return;
         }
@@ -53,6 +53,7 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
         }
 
         try {
+            const email = `${id.trim()}@travellog.com`;
             // Create user account
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
@@ -62,18 +63,24 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                 displayName: name.trim()
             });
 
-            // Create user document in Firestore with 'pending' status
+            // Create user document in Firestore
+            // jskim911 is auto-approved as primary admin
+            const initialStatus = id.trim() === 'jskim911' ? 'approved' : 'pending';
+
             await setDoc(doc(db, 'users', user.uid), {
                 uid: user.uid,
-                email: email.trim(),
+                id: id.trim(),
+                email: email,
                 displayName: name.trim(),
-                status: 'pending' as UserStatus,
+                status: initialStatus as UserStatus,
                 createdAt: serverTimestamp(),
                 lastLoginAt: serverTimestamp()
             });
 
-            // 승인 대기 상태이므로 로그아웃 처리 (자동 로그인 방지)
-            await signOut(auth);
+            // 승인 대기 계정만 로그아웃 처리, 관리자 계정은 바로 로그인 유지 가능하도록 처리
+            if (initialStatus === 'pending') {
+                await signOut(auth);
+            }
 
             setSuccess(true);
 
@@ -81,7 +88,7 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
             setTimeout(() => {
                 setSuccess(false);
                 setName('');
-                setEmail('');
+                setId('');
                 setPassword('');
                 setConfirmPassword('');
                 onClose();
@@ -91,7 +98,7 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
             console.error('Signup error:', err);
 
             if (err.code === 'auth/email-already-in-use') {
-                setError('이미 사용 중인 이메일입니다.');
+                setError('이미 사용 중인 아이디입니다.');
             } else if (err.code === 'auth/weak-password') {
                 setError('비밀번호가 너무 약합니다.');
             } else {
@@ -119,12 +126,12 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle size={32} className="text-green-600" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 mb-2">가입 완료!</h3>
+                        <h3 className="text-2xl font-bold text-slate-900 mb-2">가입 신청 완료!</h3>
                         <p className="text-slate-600">
                             관리자 승인 후 로그인하실 수 있습니다.
                         </p>
                         <p className="text-sm text-slate-500 mt-2">
-                            승인 알림을 이메일로 보내드리겠습니다.
+                            아이디: {id}
                         </p>
                     </div>
                 ) : (
@@ -136,7 +143,7 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                             </div>
                             <h2 className="text-2xl font-bold text-slate-900">회원가입</h2>
                             <p className="text-slate-500 mt-1 text-sm">
-                                여행 앨범을 시작해보세요
+                                나만의 아이디로 시작해보세요
                             </p>
                         </div>
 
@@ -159,18 +166,18 @@ export const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwi
                                 </div>
                             </div>
 
-                            {/* Email Input */}
+                            {/* ID Input */}
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    이메일
+                                    아이디
                                 </label>
                                 <div className="relative">
-                                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                     <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="example@email.com"
+                                        type="text"
+                                        value={id}
+                                        onChange={(e) => setId(e.target.value)}
+                                        placeholder="사용할 아이디 입력"
                                         className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                                     />
                                 </div>

@@ -23,17 +23,19 @@ export const useAuth = () => {
     }
   };
 
-  const signInEmail = async (email: string, pass: string) => {
+  const signInId = async (id: string, pass: string) => {
     try {
+      const email = id.includes('@') ? id : `${id}@travellog.com`;
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (error) {
-      console.error("Error signing in with Email", error);
+      console.error("Error signing in with ID", error);
       throw error;
     }
   };
 
-  const signUpEmail = async (email: string, pass: string, name: string) => {
+  const signUpId = async (id: string, pass: string, name: string) => {
     try {
+      const email = id.includes('@') ? id : `${id}@travellog.com`;
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
     } catch (error) {
@@ -50,5 +52,5 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loading, signInGoogle, signInEmail, signUpEmail, signOut };
+  return { user, loading, signInGoogle, signInId, signUpId, signOut };
 };

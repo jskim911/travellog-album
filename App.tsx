@@ -167,10 +167,16 @@ const App: React.FC = () => {
 
           // Check if user is admin
           // Only specific emails have admin access
-          const adminEmails = ['jskim6748@gmail.com']; // Real admin email
+          const adminEmails = ['jskim6748@gmail.com', 'jskim911@travellog.com'];
           const isAdminUser = adminEmails.includes(user.email || '');
           setIsAdmin(isAdminUser);
-          console.log(`Current User: ${user.email}, IsAdmin: ${isAdminUser}`); // 디버깅용: 현재 사용자가 관리자인지 확인
+
+          // If admin, force approved status
+          const effectiveStatus = isAdminUser ? 'approved' : fullUserData.status;
+          setUserStatus(effectiveStatus);
+          setUserData({ ...fullUserData, status: effectiveStatus as UserStatus });
+
+          console.log(`Current User: ${user.email}, IsAdmin: ${isAdminUser}, Status: ${effectiveStatus}`);
         } else {
           setUserStatus(null);
           setUserData(null);
