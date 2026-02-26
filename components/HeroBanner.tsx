@@ -31,7 +31,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ isSmartphoneMode = false
     }, []);
 
     return (
-        <div className={`relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl ${isSmartphoneMode ? 'h-[320px]' : 'h-[400px] sm:h-[450px]'}`}>
+        <div className={`relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl ${isSmartphoneMode ? 'h-[180px]' : 'h-[400px] sm:h-[450px]'}`}>
             {/* Background Image Slide */}
             <AnimatePresence mode="wait">
                 <motion.div
@@ -52,35 +52,33 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ isSmartphoneMode = false
             </AnimatePresence>
 
             {/* Content Section */}
-            <div className={`absolute inset-0 z-10 ${isSmartphoneMode ? 'p-6' : 'p-8 sm:p-12'} flex flex-col justify-between`}>
-                <div className="max-w-2xl">
+            <div className={`absolute inset-0 z-10 ${isSmartphoneMode ? 'p-5 py-6' : 'p-8 sm:p-12'} flex flex-col justify-between`}>
+                <div className={`${isSmartphoneMode ? 'max-w-full' : 'max-w-2xl'}`}>
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className={`inline-flex items-center gap-2 ${isSmartphoneMode ? 'px-2.5 py-0.5 mb-4' : 'px-3 py-1 mb-6'} bg-white/10 backdrop-blur-md rounded-full border border-white/20`}
+                        className={`inline-flex items-center gap-2 ${isSmartphoneMode ? 'px-2 py-0.5 mb-2' : 'px-3 py-1 mb-6'} bg-white/10 backdrop-blur-md rounded-full border border-white/20`}
                     >
-                        <Sparkles size={isSmartphoneMode ? 12 : 14} className="text-yellow-300" />
-                        <span className={`text-white ${isSmartphoneMode ? 'text-[8px]' : 'text-[10px]'} font-black uppercase tracking-widest`}>Premium Travel Log</span>
+                        <Sparkles size={isSmartphoneMode ? 10 : 14} className="text-yellow-300" />
+                        <span className={`text-white ${isSmartphoneMode ? 'text-[7px]' : 'text-[10px]'} font-black uppercase tracking-widest`}>Premium Travel Log</span>
                     </motion.div>
 
                     <motion.h2
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 }}
-                        className={`${isSmartphoneMode ? 'text-2xl' : 'text-4xl lg:text-5xl'} font-black text-white ${isSmartphoneMode ? 'mb-2' : 'mb-4'} leading-[1.1] tracking-tight break-keep`}
+                        className={`${isSmartphoneMode ? 'text-xl' : 'text-4xl lg:text-5xl'} font-black text-white ${isSmartphoneMode ? 'mb-1' : 'mb-4'} leading-[1.1] tracking-tight break-keep`}
                     >
-                        여행의 흔적을 <br />
-                        <span className="text-sky-300">작품</span>으로 만드세요
+                        여행의 흔적을 <span className="text-sky-300">작품</span>으로 만드세요
                     </motion.h2>
 
                     <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.6 }}
-                        className={`text-white/80 ${isSmartphoneMode ? 'text-[13px]' : 'text-lg'} font-medium max-w-sm leading-relaxed`}
+                        className={`text-white/80 ${isSmartphoneMode ? 'text-[11px]' : 'text-lg'} font-medium max-w-sm leading-relaxed`}
                     >
-                        단순한 사진 저장을 넘어, <br />
                         여행의 가치를 담는 특별한 공간입니다.
                     </motion.p>
                 </div>
@@ -89,7 +87,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ isSmartphoneMode = false
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8 }}
-                    className={`grid ${isSmartphoneMode ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'} gap-2 sm:gap-3`}
+                    className={`grid ${isSmartphoneMode ? 'grid-cols-3 hidden' : 'grid-cols-1 sm:grid-cols-3'} gap-2 sm:gap-3`}
                 >
                     {FEATURES.slice(0, isSmartphoneMode ? 2 : 3).map((item, i) => (
                         <div key={i} className={`flex items-center ${isSmartphoneMode ? 'gap-2 p-2.5' : 'gap-3 p-4'} text-white/90 font-bold ${isSmartphoneMode ? 'text-[11px]' : 'text-sm'} bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl hover:bg-white/10 transition-colors group`}>
@@ -103,12 +101,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ isSmartphoneMode = false
             </div>
 
             {/* Slider Indicators */}
-            <div className={`absolute ${isSmartphoneMode ? 'bottom-6 right-6' : 'bottom-12 right-12'} z-20 flex gap-1.5`}>
+            <div className={`absolute ${isSmartphoneMode ? 'bottom-4 right-6' : 'bottom-12 right-12'} z-20 flex gap-1.5`}>
                 {SLIDE_IMAGES.map((_, i) => (
                     <button
                         key={i}
                         onClick={() => setCurrentImageIndex(i)}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${currentImageIndex === i ? 'bg-white w-4' : 'bg-white/30'}`}
+                        className={`w-1 h-1 rounded-full transition-all ${currentImageIndex === i ? 'bg-white w-3' : 'bg-white/30'}`}
                     />
                 ))}
             </div>
