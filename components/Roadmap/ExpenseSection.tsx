@@ -11,10 +11,11 @@ import { ExpenseInputModal } from './ExpenseInputModal';
 interface ExpenseSectionProps {
     selectedTripId: string | null;
     selectedTrip: Itinerary | null;
+    allTrips: Itinerary[];
     isCompact?: boolean;
 }
 
-export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, selectedTrip, isCompact = false }) => {
+export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, selectedTrip, allTrips, isCompact = false }) => {
     const { user, loading: authLoading } = useAuth();
     const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]); // Filtered
@@ -30,6 +31,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
+    const [totalIndividualAmount, setTotalIndividualAmount] = useState(0);
     const [categoryStats, setCategoryStats] = useState<{ category: ExpenseCategory, amount: number, percentage: number }[]>([]);
 
     // 1. Fetch All Expenses for User
@@ -81,13 +83,23 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
             setExpenses(allExpenses);
             calculateStats(allExpenses);
         }
-    }, [selectedTripId, allExpenses]);
+    }, [selectedTripId, allExpenses, allTrips]);
 
     // 3. Subscribe logic removed (Props used instead)
 
     const calculateStats = (data: Expense[]) => {
         const total = data.reduce((sum, item) => sum + (Number(item.amountKRW) || Number(item.amount) || 0), 0);
         setTotalAmount(total);
+
+        // Smart Per-person Calculation
+        const individualTotal = data.reduce((sum, item) => {
+            const amount = Number(item.amountKRW) || Number(item.amount) || 0;
+            // Find the trip participant count for this expense
+            const trip = allTrips.find(t => t.id === item.itineraryId);
+            const pCount = Math.max(1, Number(trip?.participantCount || 1));
+            return sum + (amount / pCount);
+        }, 0);
+        setTotalIndividualAmount(individualTotal);
 
         const catMap: Record<string, number> = {};
         data.forEach(item => {
@@ -239,7 +251,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                 <p className="text-base font-black text-slate-900">
                                     {formatCurrency(totalAmount)}
                                     <span className="text-xs text-slate-400 ml-1">/</span>
-                                    <span className="text-violet-600 ml-1">{formatCurrency(totalAmount / participantCount)}</span>
+                                    <span className="text-violet-600 ml-1">{formatCurrency(totalIndividualAmount)}</span>
                                     <span className="text-xs text-slate-400 ml-0.5">인</span>
                                 </p>
                             </div>
@@ -250,12 +262,14 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                     <p className="text-xl font-black text-slate-900 tabular-nums" translate="no">{formatCurrency(totalAmount)}</p>
                                 </div>
                                 <div className="text-center py-4">
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{expenses.length}건 · {participantCount}명</p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                                        {selectedTripId ? `${expenses.length}건 · ${participantCount}명` : `${expenses.length}건 · 혼합`}
+                                    </p>
                                     <p className="text-xl font-black text-slate-400">{expenses.length > 0 ? `${expenses.length}건` : '-'}</p>
                                 </div>
                                 <div className="text-center py-4">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">1인당</p>
-                                    <p className="text-xl font-black text-violet-600 tabular-nums" translate="no">{formatCurrency(totalAmount / participantCount)}</p>
+                                    <p className="text-xl font-black text-violet-600 tabular-nums" translate="no">{formatCurrency(totalIndividualAmount)}</p>
                                 </div>
                             </div>
                         )}

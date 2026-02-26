@@ -145,6 +145,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             <ExpenseSection
                                 selectedTripId={selectedTripId}
                                 selectedTrip={selectedTrip}
+                                allTrips={allTrips}
                                 isCompact={isSmartphoneMode}
                             />
                         ) : (
