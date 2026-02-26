@@ -25,8 +25,8 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     const printRef = React.useRef<HTMLDivElement>(null);
 
     // Trip Info for PDF and Header
-    const participantCount = selectedTrip?.participantCount ? Number(selectedTrip.participantCount) : 1;
-    const currentTrip = selectedTrip; // Alias for compatibility with existing code
+    const participantCount = Math.max(1, Number(selectedTrip?.participantCount || 1));
+    const currentTrip = selectedTrip;
 
     // Stats
     const [totalAmount, setTotalAmount] = useState(0);
@@ -86,12 +86,12 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     // 3. Subscribe logic removed (Props used instead)
 
     const calculateStats = (data: Expense[]) => {
-        const total = data.reduce((sum, item) => sum + (item.amountKRW || item.amount), 0);
+        const total = data.reduce((sum, item) => sum + (Number(item.amountKRW) || Number(item.amount) || 0), 0);
         setTotalAmount(total);
 
         const catMap: Record<string, number> = {};
         data.forEach(item => {
-            const amountToSum = item.amountKRW || item.amount;
+            const amountToSum = Number(item.amountKRW) || Number(item.amount) || 0;
             catMap[item.category] = (catMap[item.category] || 0) + amountToSum;
         });
 

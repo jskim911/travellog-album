@@ -120,51 +120,51 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
 
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[95vh] flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-                    <h2 className="text-lg font-black text-slate-900" translate="no">
-                        {expenseToEdit ? '✏️ 지출 수정' : '💸 지출 추가'}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                        <X size={18} className="text-slate-400" />
-                    </button>
-                </div>
-
-                <div className="overflow-y-auto flex-1">
-                    {/* Receipt Attachment - Restored */}
-                    <div className="px-5 pt-4 pb-2">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
-                        >
-                            {receiptFile || existingReceiptUrl ? (
-                                <>
-                                    <Check size={16} className="text-green-500" />
-                                    <span>{receiptFile ? '영수증 사진 변경' : '영수증 조회/변경'}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Camera size={16} />
-                                    <span>영수증 사진 첨부</span>
-                                </>
-                            )}
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[92vh] flex flex-col">
+                <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0 bg-white z-10">
+                        <h2 className="text-lg font-black text-slate-900" translate="no">
+                            {expenseToEdit ? '✏️ 지출 수정' : '💸 지출 추가'}
+                        </h2>
+                        <button type="button" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                            <X size={20} className="text-slate-400" />
                         </button>
                     </div>
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="px-5 pb-5 pt-2 space-y-4">
-                        {/* Amount - Large & Prominent */}
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider">금액</label>
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-6">
+                        {/* Receipt Attachment */}
+                        <div className="pb-2">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                {receiptFile || existingReceiptUrl ? (
+                                    <>
+                                        <Check size={16} className="text-green-500" />
+                                        <span>{receiptFile ? '영수증 사진 변경' : '영수증 조회/변경'}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Camera size={16} />
+                                        <span>영수증 사진 첨부</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">금액</label>
                             <div className="flex gap-2">
                                 <select
                                     value={currency}
@@ -245,7 +245,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                             />
                         </div>
 
-                        {/* Category Chips */}
+                        {/* Category */}
                         <div>
                             <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">카테고리</label>
                             <div className="grid grid-cols-4 gap-2">
@@ -266,24 +266,26 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                 ))}
                             </div>
                         </div>
+                    </div>
 
-                        {/* Submit Button */}
+                    {/* Sticky Footer */}
+                    <div className="p-5 border-t border-slate-100 bg-white flex-shrink-0 pb-7 sm:pb-5">
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-3.5 mt-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl font-black shadow-lg shadow-violet-200 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <Loader2 size={18} className="animate-spin" />
                             ) : (
                                 <Check size={18} />
                             )}
-                            <span>
-                                {expenseToEdit ? '수정 완료' : '저장'}
+                            <span className="font-black">
+                                {expenseToEdit ? '수정 완료' : '저장하기'}
                             </span>
                         </button>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     );
