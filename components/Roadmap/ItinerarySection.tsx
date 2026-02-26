@@ -724,22 +724,22 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                             <h2 className={`${isSmartphoneMode ? 'text-lg' : 'text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all`}>
                                 {currentTrip.tripName}
                             </h2>
-                            <span className={`p-1 bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1`}>
+                            <span className={`${isSmartphoneMode ? 'p-1' : 'p-1.5'} bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1`}>
                                 <Edit2 size={isSmartphoneMode ? 14 : 18} />
                             </span>
                         </div>
-                        <div className={`flex flex-wrap items-center gap-y-1 ${isSmartphoneMode ? 'gap-x-2 text-[10px]' : 'gap-x-4 text-sm sm:text-base'} text-slate-500 font-medium`}>
-                            <div className={`flex items-center gap-1 ${isSmartphoneMode ? 'px-2 py-0.5' : 'px-3 py-1'} bg-slate-50 rounded-full border border-slate-100`}>
+                        <div className={`flex flex-wrap items-center ${isSmartphoneMode ? 'gap-x-2 gap-y-1 text-[10px]' : 'gap-x-4 gap-y-2 text-sm sm:text-base'} text-slate-500 font-medium`}>
+                            <div className={`flex items-center ${isSmartphoneMode ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'} bg-slate-50 rounded-full border border-slate-100`}>
                                 <CalendarIcon size={isSmartphoneMode ? 10 : 14} className="text-violet-400" />
                                 <span>{new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="flex items-center gap-1">
+                            <div className={`flex items-center ${isSmartphoneMode ? 'gap-2' : 'gap-4'}`}>
+                                <span className="flex items-center gap-1.5">
                                     <Clock size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
                                     {currentTrip.routes.length} Days
                                 </span>
                                 <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                <span className="flex items-center gap-1">
+                                <span className="flex items-center gap-1.5">
                                     <LayoutList size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
                                     {currentTrip.participantCount || 1}명 참여
                                 </span>
@@ -785,15 +785,15 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                     }
                 `}
                             >
-                                <div className="flex flex-col gap-0 min-w-0">
-                                    <span className={`text-[9px] font-black uppercase tracking-wider ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                <div className={`flex flex-col ${isSmartphoneMode ? 'gap-0' : 'gap-0.5'} min-w-0`}>
+                                    <span className={`${isSmartphoneMode ? 'text-[9px]' : 'text-[11px]'} font-black uppercase tracking-wider ${isSmartphoneMode ? '' : 'mb-0.5'} ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
                                         Day {index + 1}
                                     </span>
-                                    <div className="flex items-center gap-1 overflow-hidden">
+                                    <div className={`flex items-center ${isSmartphoneMode ? 'gap-1' : 'gap-1.5'} overflow-hidden`}>
                                         <span className={`font-black ${isSmartphoneMode ? 'text-sm' : 'text-base'} truncate ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
                                             {getDayShortDate(index)}
                                         </span>
-                                        <span className={`text-[10px] font-bold whitespace-nowrap opacity-60`}>
+                                        <span className={`${isSmartphoneMode ? 'text-[10px]' : 'text-xs'} font-bold whitespace-nowrap opacity-60`}>
                                             ({getDayOnlyDay(index)})
                                         </span>
                                     </div>
@@ -808,10 +808,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 <div className={`flex-1 w-full bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner ${isSmartphoneMode ? 'p-3.5 min-h-[400px]' : 'p-6 sm:p-10 min-h-[600px]'}`}>
                     <div className={`flex items-center justify-between ${isSmartphoneMode ? 'mb-4' : 'mb-6'}`}>
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] rounded-lg">
+                            <span className={`px-2 py-0.5 bg-violet-100 text-violet-700 ${isSmartphoneMode ? 'text-[10px]' : 'text-xs'} rounded-lg`}>
                                 Day {selectedDayDayIndex + 1} ({getDayShortDate(selectedDayDayIndex)})
                             </span>
-                            <span className="text-[11px] sm:text-base text-slate-500 font-normal">
+                            <span className={`${isSmartphoneMode ? 'text-[11px]' : 'text-xs sm:text-base'} text-slate-500 font-normal`}>
                                 {getDayDate(selectedDayDayIndex)}
                             </span>
                         </h3>
@@ -911,7 +911,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             </div>
 
                                             {/* Place Name: Robust wrapping for premium visibility */}
-                                            <h4 className={`${isSmartphoneMode ? 'text-[13px] font-bold' : 'text-xl font-black'} text-slate-800 mb-1 leading-snug break-all`}>
+                                            <h4 className={`${isSmartphoneMode ? 'text-[13px] font-bold' : 'text-xl font-black mb-2'} text-slate-800 leading-snug break-all`}>
                                                 {place.name}
                                             </h4>
 

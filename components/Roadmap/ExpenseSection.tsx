@@ -252,11 +252,11 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                     {selectedTripId ? '총 지출 / 1인당' : '전체 총액 / 개인별 합산'}
                                 </p>
                                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                                    <span className="text-lg font-black text-slate-900 leading-none">
+                                    <span className={`${isCompact ? 'text-lg' : 'text-xl sm:text-2xl'} font-black text-slate-900 leading-none`}>
                                         {formatCurrency(totalAmount)}
                                     </span>
                                     <span className="text-slate-300">/</span>
-                                    <span className="text-lg font-black text-violet-600 leading-none">
+                                    <span className={`${isCompact ? 'text-lg' : 'text-xl sm:text-2xl'} font-black text-violet-600 leading-none`}>
                                         {formatCurrency(totalIndividualAmount)}
                                     </span>
                                 </div>
@@ -359,10 +359,10 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                         </div>
                                         <div className="min-w-0 flex-1 flex items-center gap-2">
                                             <div className="min-w-0 flex-1">
-                                                <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-[12px]' : 'text-sm'} line-clamp-1 leading-tight mb-0.5`} translate="no">
+                                                <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-[12px]' : 'text-sm md:text-base'} line-clamp-1 leading-tight mb-0.5`} translate="no">
                                                     {expense.description}
                                                 </h4>
-                                                <div className={`flex items-center flex-wrap gap-x-1 gap-y-0 ${isCompact ? 'text-[9px]' : 'text-xs'} text-slate-400 font-medium`}>
+                                                <div className={`flex items-center flex-wrap gap-x-1 gap-y-0 ${isCompact ? 'text-[9px]' : 'text-[10px] md:text-xs'} text-slate-400 font-medium`}>
                                                     <span className="whitespace-nowrap">{new Date(expense.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
                                                     <span className="opacity-30">·</span>
                                                     <span className="whitespace-nowrap">{getCategoryName(expense.category)}</span>
