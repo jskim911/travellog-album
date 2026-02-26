@@ -92,22 +92,22 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
         setTotalAmount(total);
 
         // Smart Per-person Calculation
-        const individualTotal = data.reduce((sum, item) => {
-            const amount = Number(item.amountKRW) || Number(item.amount) || 0;
-
-            // 1. If we are in a selected trip view, use selectedTrip info for faster/consistent response
-            let pCount = 1;
-            if (selectedTripId && item.itineraryId === selectedTripId && selectedTrip) {
-                pCount = Math.max(1, Number(selectedTrip.participantCount || 1));
-            } else {
-                // 2. Otherwise find the trip in allTrips (for mixed view or legacy)
+        if (selectedTripId && selectedTrip) {
+            // 여행이 선택된 경우: (필터링된 총액 / 해당 여행 인원수)로 계산
+            // 이는 개별 항목을 나누어 더하는 것보다 계산 오차가 적고 사용자 기대에 부합함
+            const pCount = Math.max(1, Number(selectedTrip.participantCount || 1));
+            setTotalIndividualAmount(total / pCount);
+        } else {
+            // 전체 보기 모드: 각 지출 내역별로 소속된 여행의 인원수를 찾아 합산
+            const individualTotal = data.reduce((sum, item) => {
+                const amount = Number(item.amountKRW) || Number(item.amount) || 0;
+                let pCount = 1;
                 const trip = allTrips.find(t => t.id === item.itineraryId);
                 pCount = Math.max(1, Number(trip?.participantCount || 1));
-            }
-
-            return sum + (amount / pCount);
-        }, 0);
-        setTotalIndividualAmount(individualTotal);
+                return sum + (amount / pCount);
+            }, 0);
+            setTotalIndividualAmount(individualTotal);
+        }
 
         const catMap: Record<string, number> = {};
         data.forEach(item => {

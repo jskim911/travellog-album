@@ -41,7 +41,17 @@ const App: React.FC = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'all' | 'by-date' | 'by-location'>('all');
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(() => {
+    return localStorage.getItem('travellog_selected_trip_id');
+  });
+
+  useEffect(() => {
+    if (selectedTripId) {
+      localStorage.setItem('travellog_selected_trip_id', selectedTripId);
+    } else {
+      localStorage.removeItem('travellog_selected_trip_id');
+    }
+  }, [selectedTripId]);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   useEffect(() => {
