@@ -156,3 +156,15 @@ export interface AdminSettings {
   maxUploadSize: number;
   allowedImageTypes: string[];
 }
+
+export interface Notice {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: any;
+  updatedAt: any;
+  isPriority?: boolean;
+}

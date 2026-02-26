@@ -10,6 +10,7 @@ import { db, storage } from './firebase';
 import { deleteObject, ref } from 'firebase/storage';
 import { UploadSection } from './components/UploadSection';
 import { PhotoCard } from './components/PhotoCard';
+import { NoticeBoard } from './components/NoticeBoard';
 import { HeroBanner } from './components/HeroBanner';
 import { StoryboardCreator } from './components/StoryboardCreator';
 import { RoadmapPage } from './components/Roadmap/RoadmapPage';
@@ -262,6 +263,14 @@ const App: React.FC = () => {
                   isSmartphoneMode={isSmartphoneMode}
                 />
               </div>
+            )}
+
+            {user && userStatus === 'approved' && (
+              <NoticeBoard
+                isAdmin={isAdmin}
+                currentUser={user ? { uid: user.uid, displayName: user.displayName || '' } : null}
+                isSmartphoneMode={isSmartphoneMode}
+              />
             )}
 
             {user && userStatus === 'approved' && (
