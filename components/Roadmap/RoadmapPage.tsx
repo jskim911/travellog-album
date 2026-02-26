@@ -54,8 +54,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 // Sort by startDate descending (newest first)
                 trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
                 setAllTrips(trips);
+
+                // Auto-select logic: if no trip is selected, or if the selectedTripId is invalid for this user
+                if (trips.length > 0) {
+                    const isIdValid = trips.some(t => t.id === selectedTripId);
+                    if (!selectedTripId || !isIdValid) {
+                        onSelectTrip(trips[0].id);
+                    }
+                }
             } else {
                 setAllTrips([]);
+                if (selectedTripId) onSelectTrip(null);
             }
             setLoading(false);
         }, (error) => {
