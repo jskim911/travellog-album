@@ -12,6 +12,7 @@ interface PhotoCardProps {
     isSelected?: boolean;
     onToggleSelect?: (album: Album) => void;
     showMetadata?: boolean;
+    isSmartphoneMode?: boolean;
 }
 
 export const PhotoCard: React.FC<PhotoCardProps> = ({
@@ -20,7 +21,8 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
     isSelectionMode = false,
     isSelected = false,
     onToggleSelect,
-    showMetadata = true
+    showMetadata = true,
+    isSmartphoneMode = false
 }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -109,16 +111,16 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                 )}
 
                 {/* Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent ${isSmartphoneMode ? 'opacity-40' : 'opacity-0 group-hover:opacity-100'} transition-opacity duration-300`} />
 
                 {/* Floating Meta (Top Right/Left) */}
                 <AnimatePresence>
-                    {!isSelectionMode && isHovered && (
+                    {(!isSelectionMode && (isHovered || isSmartphoneMode)) && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
+                            initial={isSmartphoneMode ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute top-4 right-4 flex gap-2 z-10"
+                            className={`absolute ${isSmartphoneMode ? 'top-2 right-2' : 'top-4 right-4'} flex gap-1.5 z-10`}
                         >
                             {onDelete && (
                                 <button
@@ -126,9 +128,9 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                                         e.stopPropagation();
                                         onDelete(album.id, album.coverUrl);
                                     }}
-                                    className="p-2.5 bg-red-500/90 backdrop-blur-md text-white rounded-full transition-all shadow-lg hover:bg-red-600 hover:rotate-12"
+                                    className={`${isSmartphoneMode ? 'p-1.5' : 'p-2.5'} bg-red-500/90 backdrop-blur-md text-white rounded-full transition-all shadow-lg hover:bg-red-600`}
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={isSmartphoneMode ? 12 : 16} />
                                 </button>
                             )}
                             <button
@@ -136,9 +138,9 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                                     e.stopPropagation();
                                     window.open(album.coverUrl, '_blank');
                                 }}
-                                className="p-2.5 bg-white/90 backdrop-blur-md text-slate-700 rounded-full transition-all shadow-lg hover:bg-white hover:scale-110"
+                                className={`${isSmartphoneMode ? 'p-1.5' : 'p-2.5'} bg-white/90 backdrop-blur-md text-slate-700 rounded-full transition-all shadow-lg hover:bg-white`}
                             >
-                                <Download size={16} />
+                                <Download size={isSmartphoneMode ? 12 : 16} />
                             </button>
                         </motion.div>
                     )}

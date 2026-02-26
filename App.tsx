@@ -241,19 +241,23 @@ const App: React.FC = () => {
         ) : (
           <>
             {user && userStatus === 'approved' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                <HeroBanner />
-                <UploadSection onOpenLoginModal={() => setIsLoginModalOpen(true)} isCompact={true} />
+              <div className={`${isSmartphoneMode ? 'flex flex-col gap-6' : 'grid grid-cols-1 lg:grid-cols-2 gap-8'} mb-12`}>
+                <HeroBanner isSmartphoneMode={isSmartphoneMode} />
+                <UploadSection
+                  onOpenLoginModal={() => setIsLoginModalOpen(true)}
+                  isCompact={isSmartphoneMode}
+                  isSmartphoneMode={isSmartphoneMode}
+                />
               </div>
             )}
 
             {user && userStatus === 'approved' && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between my-8 pb-4 border-b border-slate-200">
+              <div className={`flex flex-col sm:flex-row items-start sm:items-end justify-between ${isSmartphoneMode ? 'my-6' : 'my-8'} pb-4 border-b border-slate-200`}>
                 <div className="space-y-1">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Gallery</h2>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{albums.length} Moments Captured</p>
+                  <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900 tracking-tight`}>Gallery</h2>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">{albums.length} Moments Captured</p>
                 </div>
-                <div className="flex items-center gap-3 mt-6 sm:mt-0">
+                <div className={`flex items-center gap-3 ${isSmartphoneMode ? 'mt-4' : 'mt-6 sm:mt-0'}`}>
                   <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/50 shadow-inner">
                     {[
                       { id: 'all', label: '전체' },
@@ -311,7 +315,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     )}
-                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
+                    <div className={`grid ${isSmartphoneMode ? 'grid-cols-2 xs:grid-cols-3' : 'grid-cols-4 sm:grid-cols-6 lg:grid-cols-8'} gap-2 sm:gap-4`}>
                       {groupAlbums.map(album => (
                         <PhotoCard
                           key={album.id}

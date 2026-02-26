@@ -23,7 +23,13 @@ const FilePreview = ({ file }: { file: File }) => {
   return <img src={preview} alt={file.name} className="w-full h-full object-cover" />;
 };
 
-export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, isCompact = false }) => {
+interface UploadSectionProps {
+  onOpenLoginModal: () => void;
+  isCompact?: boolean;
+  isSmartphoneMode?: boolean;
+}
+
+export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, isCompact = false, isSmartphoneMode = false }) => {
   const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -201,15 +207,15 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
   }
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-slate-200/60 w-full p-6 sm:p-10">
+    <div className={`bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-slate-200/60 w-full ${isSmartphoneMode ? 'p-5' : 'p-6 sm:p-10'}`}>
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-            <Upload size={22} className="text-white" />
+        <div className={`flex items-center gap-3 ${isSmartphoneMode ? 'mb-5' : 'mb-8'}`}>
+          <div className={`${isSmartphoneMode ? 'w-10 h-10' : 'w-12 h-12'} bg-gradient-to-br from-indigo-500 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100`}>
+            <Upload size={isSmartphoneMode ? 18 : 22} className="text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">사진 업로드</h3>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Moment Capture System</p>
+            <h3 className={`${isSmartphoneMode ? 'text-lg' : 'text-xl'} font-black text-slate-800 tracking-tight`}>사진 업로드</h3>
+            <p className={`${isSmartphoneMode ? 'text-[10px]' : 'text-sm'} font-bold text-slate-400 uppercase tracking-widest`}>Moment Capture System</p>
           </div>
         </div>
 
@@ -219,16 +225,16 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
               onClick={() => fileInputRef.current?.click()}
               className="w-full group"
             >
-              <div className="relative overflow-hidden py-12 border-2 border-dashed border-slate-200 rounded-[2rem] hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-500">
+              <div className={`relative overflow-hidden ${isSmartphoneMode ? 'py-8' : 'py-12'} border-2 border-dashed border-slate-200 rounded-[2rem] hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-500`}>
                 <div className="flex flex-col items-center gap-4 relative z-10">
-                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-50 to-sky-50 group-hover:from-indigo-100 group-hover:to-sky-100 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-inner">
-                    <Upload className="w-10 h-10 text-indigo-600 group-hover:scale-110 transition-transform duration-500" />
+                  <div className={`${isSmartphoneMode ? 'w-16 h-16' : 'w-20 h-20'} bg-gradient-to-br from-indigo-50 to-sky-50 group-hover:from-indigo-100 group-hover:to-sky-100 rounded-3xl flex items-center justify-center transition-all duration-500 shadow-inner`}>
+                    <Upload className={`${isSmartphoneMode ? 'w-8 h-8' : 'w-10 h-10'} text-indigo-600 group-hover:scale-110 transition-transform duration-500`} />
                   </div>
-                  <div>
-                    <p className="text-lg font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
+                  <div className="px-4">
+                    <p className={`${isSmartphoneMode ? 'text-base' : 'text-lg'} font-black text-slate-800 group-hover:text-indigo-600 transition-colors`}>
                       여행 사진 선택하기
                     </p>
-                    <p className="text-sm text-slate-400 font-medium mt-1">또는 화면으로 파일을 끌어오세요</p>
+                    {!isSmartphoneMode && <p className="text-sm text-slate-400 font-medium mt-1">또는 화면으로 파일을 끌어오세요</p>}
                   </div>
                 </div>
               </div>
@@ -278,33 +284,33 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSmartphoneMode ? 'gap-3' : 'gap-4'}`}>
                 {/* Date Input */}
-                <div className="relative font-bold mt-2">
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">여행 날짜</label>
+                <div className="relative font-bold">
+                  <label className="text-[9px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">여행 날짜</label>
                   <div className="relative">
                     <input
                       type="date"
                       value={dateInput}
                       onChange={(e) => setDateInput(e.target.value)}
-                      className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm"
+                      className={`w-full ${isSmartphoneMode ? 'px-3 py-2.5 pl-10' : 'px-4 py-3.5 pl-11'} rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm text-sm`}
                     />
-                    <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Calendar size={isSmartphoneMode ? 16 : 18} className={`absolute ${isSmartphoneMode ? 'left-3.5' : 'left-4'} top-1/2 -translate-y-1/2 text-slate-400`} />
                   </div>
                 </div>
 
                 {/* Location Input */}
-                <div className="relative font-bold mt-2">
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">방문 장소</label>
+                <div className="relative font-bold">
+                  <label className="text-[9px] text-slate-400 uppercase tracking-widest ml-1 mb-1 block">방문 장소</label>
                   <div className="relative">
                     <input
                       type="text"
                       value={locationInput}
                       onChange={(e) => setLocationInput(e.target.value)}
                       placeholder="예: 제주도, 파리"
-                      className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm"
+                      className={`w-full ${isSmartphoneMode ? 'px-3 py-2.5 pl-10' : 'px-4 py-3.5 pl-11'} rounded-2xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white text-slate-800 shadow-sm text-sm`}
                     />
-                    <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <MapPin size={isSmartphoneMode ? 16 : 18} className={`absolute ${isSmartphoneMode ? 'left-3.5' : 'left-4'} top-1/2 -translate-y-1/2 text-slate-400`} />
                   </div>
                 </div>
               </div>
@@ -323,7 +329,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
                 onClick={handleUpload}
                 disabled={uploadStatus === 'uploading' || uploadStatus === 'success'}
                 className={`
-                    w-full py-4 rounded-2xl text-base font-black text-white shadow-xl flex items-center justify-center gap-3 transition-all duration-300
+                    w-full ${isSmartphoneMode ? 'py-3.5 text-sm' : 'py-4 text-base'} rounded-2xl font-black text-white shadow-xl flex items-center justify-center gap-3 transition-all duration-300
                     ${uploadStatus === 'success'
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-200'
                     : 'btn-premium'}
@@ -337,12 +343,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
                   </>
                 ) : uploadStatus === 'success' ? (
                   <>
-                    <CheckCircle2 size={20} />
+                    <CheckCircle2 size={isSmartphoneMode ? 18 : 20} />
                     SAVED SUCCESSFULLY
                   </>
                 ) : (
                   <>
-                    <Upload size={20} />
+                    <Upload size={isSmartphoneMode ? 18 : 20} />
                     <span>{selectedFiles.length}장의 사진 기록하기</span>
                   </>
                 )}
