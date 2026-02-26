@@ -84,7 +84,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 <div>
                     <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-1 flex items-center gap-2">
                         <Map className="text-violet-600 w-6 h-6 sm:w-8 sm:h-8" />
-                        여행 로드맵
+                        여행계획
                     </h1>
                     <p className="text-xs text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
                 </div>

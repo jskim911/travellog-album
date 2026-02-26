@@ -3,7 +3,7 @@ import {
   Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield,
   Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download,
   Smartphone, Monitor, Home, X, CheckCircle2, Trash2, BookOpen, Map,
-  Image as ImageIcon, Sparkles
+  Image as ImageIcon
 } from 'lucide-react';
 import { collection, query, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -196,7 +196,7 @@ const App: React.FC = () => {
               {user && userStatus === 'approved' && (
                 <div className="flex ml-2 sm:ml-10 p-1 sm:p-1.5 bg-slate-200/50 rounded-2xl text-[13px] sm:text-[15px]">
                   <button onClick={() => setCurrentPage('gallery')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'gallery' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>갤러리</button>
-                  <button onClick={() => setCurrentPage('roadmap')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'roadmap' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>로드맵</button>
+                  <button onClick={() => setCurrentPage('roadmap')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'roadmap' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>여행계획</button>
                 </div>
               )}
             </div>
@@ -320,7 +320,6 @@ const App: React.FC = () => {
                           isSelectionMode={isSelectionMode}
                           isSelected={selectedAlbumIds.has(album.id)}
                           onToggleSelect={toggleAlbumSelection}
-                          showMetadata={!isSmartphoneMode}
                         />
                       ))}
                     </div>
@@ -362,8 +361,8 @@ const App: React.FC = () => {
                 background: currentPage === 'roadmap' ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
               }}
             >
-              <Map size={22} strokeWidth={currentPage === 'roadmap' ? 2.5 : 2} />
-              <span style={{ fontSize: '10px', fontWeight: 700 }}>로드맵</span>
+              <CalendarIcon size={22} strokeWidth={currentPage === 'roadmap' ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>여행계획</span>
             </button>
 
             <button

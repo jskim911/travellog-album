@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Camera, Check, Loader2 } from 'lucide-react';
 import { Expense, ExpenseCategory, Currency } from '../../types';
-import { extractReceiptData } from '../../src/utils/gemini';
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -25,68 +24,37 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
     const [category, setCategory] = useState<ExpenseCategory>('food');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [existingReceiptUrl, setExistingReceiptUrl] = useState<string | null>(null);
-
-    const [isScanning, setIsScanning] = useState(false);
+    const [exchangeRate, setExchangeRate] = useState('1');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isAiSuccess, setIsAiSuccess] = useState(false);
 
     useEffect(() => {
         if (isOpen && expenseToEdit) {
             setDate(new Date(expenseToEdit.date).toISOString().split('T')[0]);
             setDescription(expenseToEdit.description);
             setAmount(expenseToEdit.amount.toString());
-            setCurrency(expenseToEdit.currency);
+            setCurrency(expenseToEdit.currency as Currency);
             setCategory(expenseToEdit.category);
+            setExchangeRate(expenseToEdit.exchangeRate?.toString() || '1');
             setExistingReceiptUrl(expenseToEdit.receiptUrl || null);
-            setIsAiSuccess(expenseToEdit.isOCR || false);
         } else if (isOpen && !expenseToEdit) {
-            // Reset for new entry
             setDate(new Date().toISOString().split('T')[0]);
             setDescription('');
             setAmount('');
             setCurrency('KRW');
             setCategory('food');
+            setExchangeRate('1');
             setReceiptFile(null);
             setExistingReceiptUrl(null);
-            setIsAiSuccess(false);
         }
     }, [isOpen, expenseToEdit]);
 
     if (!isOpen) return null;
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
-
-        setReceiptFile(file);
-        setIsScanning(true);
-        setIsAiSuccess(false); // Reset AI success status
-
-        try {
-            const data = await extractReceiptData(file);
-
-            // Check if valid data returned
-            if (!data.total && data.merchantName === "알 수 없음") {
-                throw new Error("데이터 추출 실패");
-            }
-
-            // Auto-fill form
-            setDescription(data.merchantName);
-            setAmount(data.total.toString());
-            setDate(data.date);
-            setCurrency(data.currency as Currency || 'KRW');
-            setIsAiSuccess(true); // Mark AI as successful
-
-        } catch (error) {
-            console.error('Receipt scanning failed:', error);
-            // Don't alert aggressively, just let user valid
-            // But user wants to know why it failed.
-            alert('AI가 영수증 내용을 인식하지 못했습니다. 직접 내용을 입력해주세요.');
-            // Only file is attached
-        } finally {
-            setIsScanning(false);
-        }
+        if (file) setReceiptFile(file);
     };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,16 +69,21 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                 receiptUrl = await getDownloadURL(snapshot.ref);
             }
 
+            const numAmount = Number(amount);
+            const numRate = currency === 'KRW' ? 1 : Number(exchangeRate);
+
             const expenseData = {
                 userId: user.uid,
                 itineraryId: tripId,
                 date: new Date(date),
                 description,
-                amount: Number(amount),
+                amount: numAmount,
                 currency,
+                exchangeRate: numRate,
+                amountKRW: Math.round(numAmount * numRate),
                 category,
                 receiptUrl,
-                isOCR: isAiSuccess,
+                isOCR: false,
             };
 
             if (expenseToEdit) {
@@ -141,6 +114,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
         { value: 'shopping', label: '쇼핑', icon: '🛍️' },
         { value: 'activity', label: '관광/활동', icon: '🎫' },
         { value: 'flight', label: '항공', icon: '✈️' },
+        { value: 'golf', label: '골프', icon: '⛳' },
         { value: 'other', label: '기타', icon: '🎸' }
     ];
 
@@ -149,7 +123,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
             <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[95vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-                    <h2 className="text-lg font-black text-slate-900">
+                    <h2 className="text-lg font-black text-slate-900" translate="no">
                         {expenseToEdit ? '✏️ 지출 수정' : '💸 지출 추가'}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -158,7 +132,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                 </div>
 
                 <div className="overflow-y-auto flex-1">
-                    {/* AI Scan Button - Compact */}
+                    {/* Receipt Attachment - Restored */}
                     <div className="px-5 pt-4 pb-2">
                         <input
                             type="file"
@@ -168,28 +142,19 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                             onChange={handleFileChange}
                         />
                         <button
+                            type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={isScanning}
-                            className="w-full py-2.5 bg-violet-50 border border-violet-200 hover:border-violet-400 hover:bg-violet-100 text-violet-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
+                            className="w-full py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
                         >
-                            {isScanning ? (
-                                <>
-                                    <Loader2 size={16} className="animate-spin" />
-                                    <span>AI 분석 중...</span>
-                                </>
-                            ) : receiptFile || existingReceiptUrl ? (
+                            {receiptFile || existingReceiptUrl ? (
                                 <>
                                     <Check size={16} className="text-green-500" />
-                                    <span className={isAiSuccess ? "text-green-600" : "text-slate-600"}>
-                                        {receiptFile
-                                            ? (isAiSuccess ? 'AI 입력 완료 ✓' : '영수증 첨부됨')
-                                            : '기존 영수증 유지'}
-                                    </span>
+                                    <span>{receiptFile ? '영수증 사진 변경' : '영수증 조회/변경'}</span>
                                 </>
                             ) : (
                                 <>
                                     <Camera size={16} />
-                                    <span>📷 영수증 스캔 (AI 자동입력)</span>
+                                    <span>영수증 사진 첨부</span>
                                 </>
                             )}
                         </button>
@@ -205,23 +170,55 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                     value={currency}
                                     onChange={(e) => setCurrency(e.target.value as Currency)}
                                     className="px-3 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-700 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300"
+                                    translate="no"
                                 >
                                     <option value="KRW">₩ KRW</option>
                                     <option value="USD">$ USD</option>
                                     <option value="EUR">€ EUR</option>
                                     <option value="JPY">¥ JPY</option>
                                     <option value="CNY">¥ CNY</option>
+                                    <option value="THB">฿ THB</option>
                                 </select>
                                 <input
                                     type="number"
+                                    inputMode="decimal"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     placeholder="0"
-                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-xl text-xl font-black text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all"
+                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-xl text-xl font-black text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all tabular-nums"
+                                    translate="no"
                                     required
                                 />
                             </div>
                         </div>
+
+                        {/* Exchange Rate Logic */}
+                        {currency !== 'KRW' && (
+                            <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                                <div className="flex justify-between items-end gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-[10px] font-black text-indigo-400 mb-1.5 uppercase tracking-widest">적용 환율 (1 {currency}당 KRW)</label>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={exchangeRate}
+                                            onChange={(e) => setExchangeRate(e.target.value)}
+                                            step="any"
+                                            className="w-full px-3 py-2 bg-white rounded-lg text-sm font-bold text-slate-900 border border-indigo-100 outline-none focus:ring-2 focus:ring-indigo-200 transition-all tabular-nums"
+                                            placeholder="환율 입력"
+                                            translate="no"
+                                            required={currency !== 'KRW'}
+                                        />
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase tracking-widest">원화 환산 금액</p>
+                                        <p className="text-lg font-black text-indigo-600 tabular-nums" translate="no">
+                                            ₩ {Math.round(Number(amount || 0) * Number(exchangeRate || 0)).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Description */}
                         <div>
@@ -261,9 +258,10 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                             ? 'bg-violet-50 border-violet-400 text-violet-700 shadow-sm'
                                             : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'
                                             }`}
+                                        translate="no"
                                     >
                                         <span className="text-lg">{c.icon}</span>
-                                        <span className="truncate w-full text-center text-[11px]">{c.label}</span>
+                                        <span className="truncate w-full text-center text-[11px] font-bold">{c.label}</span>
                                     </button>
                                 ))}
                             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, PieChart, Trash2, Download, Calendar, Users, Pencil } from 'lucide-react';
+import { Plus, PieChart, Trash2, Download, Calendar, Users, Pencil, FileImage, Maximize2, X } from 'lucide-react';
 import { collection, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import html2canvas from 'html2canvas';
@@ -21,6 +21,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+    const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
     const printRef = React.useRef<HTMLDivElement>(null);
 
     // Trip Info for PDF and Header
@@ -85,12 +86,13 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
     // 3. Subscribe logic removed (Props used instead)
 
     const calculateStats = (data: Expense[]) => {
-        const total = data.reduce((sum, item) => sum + item.amount, 0);
+        const total = data.reduce((sum, item) => sum + (item.amountKRW || item.amount), 0);
         setTotalAmount(total);
 
         const catMap: Record<string, number> = {};
         data.forEach(item => {
-            catMap[item.category] = (catMap[item.category] || 0) + item.amount;
+            const amountToSum = item.amountKRW || item.amount;
+            catMap[item.category] = (catMap[item.category] || 0) + amountToSum;
         });
 
         const stats = Object.entries(catMap).map(([cat, amt]) => ({
@@ -138,6 +140,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
             case 'shopping': return '🛍️';
             case 'activity': return '🎫';
             case 'flight': return '✈️';
+            case 'golf': return '⛳';
             default: return '🎸';
         }
     };
@@ -150,6 +153,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
             shopping: '쇼핑',
             activity: '활동',
             flight: '항공',
+            golf: '골프',
             other: '기타'
         };
         return map[cat] || '기타';
@@ -206,7 +210,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 <div className={`${isCompact ? 'pb-3' : 'pb-4'} border-b border-slate-100`}>
                     {currentTrip ? (
                         <>
-                            <h1 className={`${isCompact ? 'text-lg mb-1' : 'text-2xl mb-2'} font-black text-slate-900 tracking-tight truncate`}>
+                            <h1 className={`${isCompact ? 'text-lg mb-1' : 'text-2xl mb-2'} font-black text-slate-900 tracking-tight truncate`} translate="no">
                                 {currentTrip.tripName}
                             </h1>
                             {!isCompact && (
@@ -243,7 +247,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                             <div className="grid grid-cols-3 divide-x divide-slate-200 w-full">
                                 <div className="text-center py-4">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">총 지출</p>
-                                    <p className="text-xl font-black text-slate-900">{formatCurrency(totalAmount)}</p>
+                                    <p className="text-xl font-black text-slate-900 tabular-nums" translate="no">{formatCurrency(totalAmount)}</p>
                                 </div>
                                 <div className="text-center py-4">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{expenses.length}건 · {participantCount}명</p>
@@ -251,7 +255,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                 </div>
                                 <div className="text-center py-4">
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">1인당</p>
-                                    <p className="text-xl font-black text-violet-600">{formatCurrency(totalAmount / participantCount)}</p>
+                                    <p className="text-xl font-black text-violet-600 tabular-nums" translate="no">{formatCurrency(totalAmount / participantCount)}</p>
                                 </div>
                             </div>
                         )}
@@ -276,7 +280,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                             style={{ width: `${stat.percentage}%` }}
                                         />
                                     </div>
-                                    <span className="text-xs font-black text-slate-700 w-20 text-right">
+                                    <span className="text-xs font-black text-slate-700 w-20 text-right tabular-nums" translate="no">
                                         {formatCurrency(stat.amount)}
                                     </span>
                                     <span className="text-[10px] text-slate-400 w-8 text-right">{Math.round(stat.percentage)}%</span>
@@ -333,22 +337,43 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                         <div className={`${isCompact ? 'w-8 h-8 text-base' : 'w-10 h-10 text-lg'} bg-slate-50 rounded-xl flex items-center justify-center flex-shrink-0`}>
                                             {getCategoryIcon(expense.category)}
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-xs' : 'text-sm'} truncate leading-tight`}>{expense.description}</h4>
-                                            <div className={`flex items-center gap-1.5 ${isCompact ? 'text-[10px]' : 'text-xs'} text-slate-400 mt-0.5`}>
-                                                <span>{new Date(expense.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
-                                                <span>·</span>
-                                                <span>{getCategoryName(expense.category)}</span>
-                                                {expense.isOCR && <span className="text-[9px] font-bold text-violet-500 bg-violet-50 px-1 rounded">AI</span>}
+                                        <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            <div className="min-w-0 flex-1">
+                                                <h4 className={`font-bold text-slate-800 ${isCompact ? 'text-xs' : 'text-sm'} truncate leading-tight`} translate="no">{expense.description}</h4>
+                                                <div className={`flex items-center gap-1.5 ${isCompact ? 'text-[10px]' : 'text-xs'} text-slate-400 mt-0.5`}>
+                                                    <span>{new Date(expense.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+                                                    <span>·</span>
+                                                    <span>{getCategoryName(expense.category)}</span>
+                                                    {expense.isOCR && <span className="text-[9px] font-bold text-violet-500 bg-violet-50 px-1 rounded">AI</span>}
+                                                </div>
                                             </div>
+                                            {expense.receiptUrl && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedReceiptUrl(expense.receiptUrl || null);
+                                                    }}
+                                                    className="p-1.5 bg-violet-50 text-violet-500 rounded-lg hover:bg-violet-100 transition-colors flex-shrink-0"
+                                                    title="영수증 보기"
+                                                >
+                                                    <FileImage size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* Right: Amount + Actions */}
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className={`font-black text-slate-900 ${isCompact ? 'text-xs' : 'text-sm'} tabular-nums`}>
-                                            {formatCurrency(expense.amount, expense.currency)}
-                                        </span>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={`font-black text-slate-900 ${isCompact ? 'text-xs' : 'text-sm'} tabular-nums`} translate="no">
+                                                {formatCurrency(expense.amount, expense.currency)}
+                                            </span>
+                                            {expense.currency !== 'KRW' && expense.amountKRW && (
+                                                <span className="text-[10px] font-bold text-indigo-500 tabular-nums" translate="no">
+                                                    (₩ {expense.amountKRW.toLocaleString()})
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleEdit(expense)}
@@ -378,6 +403,40 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 tripId={selectedTripId}
                 expenseToEdit={editingExpense}
             />
+            {/* Receipt Viewer Modal */}
+            {selectedReceiptUrl && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                    onClick={() => setSelectedReceiptUrl(null)}
+                >
+                    <div className="relative max-w-4xl w-full max-h-full flex flex-col items-center">
+                        <button
+                            className="absolute -top-12 right-0 p-2 text-white/70 hover:text-white transition-colors"
+                            onClick={() => setSelectedReceiptUrl(null)}
+                        >
+                            <X size={24} />
+                        </button>
+                        <img
+                            src={selectedReceiptUrl}
+                            alt="영수증"
+                            className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl object-contain animate-in zoom-in-95 duration-300"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="mt-4 flex gap-4">
+                            <a
+                                href={selectedReceiptUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold backdrop-blur-md transition-all flex items-center gap-2"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Maximize2 size={16} />
+                                <span>원본 보기</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

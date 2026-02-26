@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, FileImage, CheckCircle2, Sparkles, LogIn, MapPin, Camera, PlusCircle, Calendar } from 'lucide-react';
+import { Upload, X, FileImage, CheckCircle2, LogIn, MapPin, Camera, PlusCircle, Calendar } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { storage, db } from '../firebase';
 import { useAuth } from '../src/hooks/useAuth';
-import { AISuggestions } from './AISuggestions';
-import { analyzePhotoAndGenerateCaption, generateCaptionSuggestions } from '../src/utils/gemini';
 import imageCompression from 'browser-image-compression';
 
 interface UploadSectionProps {
@@ -35,36 +33,14 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
   const [progressMessage, setProgressMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // AI Suggestions State
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [selectedCaption, setSelectedCaption] = useState('');
-  const [customCaption, setCustomCaption] = useState('');
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray: File[] = Array.from(e.target.files);
       setSelectedFiles((prev) => [...prev, ...filesArray]);
       setUploadStatus('idle');
-
-      if (filesArray.length > 0 && aiSuggestions.length === 0) {
-        await generateAISuggestions(filesArray[0]);
-      }
     }
   };
 
-  const generateAISuggestions = async (file: File) => {
-    setLoadingAI(true);
-    try {
-      const suggestions = await generateCaptionSuggestions(file, locationInput);
-      setAiSuggestions(suggestions);
-    } catch (error) {
-      console.error('AI 추천 생성 실패:', error);
-      setAiSuggestions([]);
-    } finally {
-      setLoadingAI(false);
-    }
-  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -85,8 +61,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
       setSelectedFiles((prev) => [...prev, ...imageFiles]);
       setUploadStatus('idle');
 
-      if (imageFiles.length > 0 && aiSuggestions.length === 0) {
-        await generateAISuggestions(imageFiles[0]);
+      if (imageFiles.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...imageFiles]);
+        setUploadStatus('idle');
       }
     }
   };
@@ -101,23 +78,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
     setUploadStatus('uploading');
 
     try {
-      const finalCaption = selectedCaption || customCaption;
 
       for (let fileIndex = 0; fileIndex < selectedFiles.length; fileIndex++) {
         const file = selectedFiles[fileIndex];
 
-        // AI 분석 (첫 번째 파일만 또는 각 파일마다)
-        setProgressMessage(`'${file.name}' AI 분석 중... (${fileIndex + 1}/${selectedFiles.length})`);
         let aiTitle = file.name.replace(/\.[^/.]+$/, "");
         let aiRating = 4;
-
-        try {
-          const aiResult = await analyzePhotoAndGenerateCaption(file);
-          aiTitle = aiResult.title;
-          aiRating = aiResult.rating;
-        } catch (error) {
-          console.error('AI 분석 실패:', error);
-        }
 
         // 이미지 압축 (강화된 설정)
         setProgressMessage(`'${file.name}' 최적화 중... (${fileIndex + 1}/${selectedFiles.length})`);
@@ -171,10 +137,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
           url: downloadUrl,
           thumbnailUrl: thumbnailUrl,
           location: locationInput.trim() || "기타",
-          caption: finalCaption || "",
-          aiSuggestions: aiSuggestions.length > 0 ? aiSuggestions : undefined,
-          title: aiTitle,
-          rating: aiRating,
           date: Timestamp.fromDate(new Date(dateInput)),
           uploadedAt: serverTimestamp(),
           metadata: {
@@ -202,9 +164,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
         setProgressMessage('');
         setLocationInput('');
         setDateInput(new Date().toISOString().split('T')[0]); // Reset to today
-        setAiSuggestions([]);
-        setSelectedCaption('');
-        setCustomCaption('');
       }, 2000);
 
     } catch (error: any) {
@@ -232,10 +191,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
           </div>
           <button
             onClick={onOpenLoginModal}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-full font-bold shadow-lg shadow-indigo-200 hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+            className="flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-sky-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-200 hover:shadow-xl hover:scale-105 transition-all active:scale-95"
           >
-            <LogIn size={20} />
-            <span>시작하기</span>
+            <span>로그인</span>
           </button>
         </div>
       </div>
@@ -351,42 +309,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onOpenLoginModal, 
                 </div>
               </div>
 
-              {/* AI Suggestions & Custom Caption moved to a refined container */}
-              <div className="space-y-4">
-                {(aiSuggestions.length > 0 || loadingAI) && (
-                  <AISuggestions
-                    suggestions={aiSuggestions}
-                    onSelect={(caption) => {
-                      setSelectedCaption(caption);
-                      setCustomCaption('');
-                    }}
-                    onRegenerate={() => {
-                      if (selectedFiles.length > 0) {
-                        generateAISuggestions(selectedFiles[0]);
-                      }
-                    }}
-                    loading={loadingAI}
-                    selectedCaption={selectedCaption}
-                  />
-                )}
-
-                <div className="relative">
-                  <textarea
-                    value={customCaption}
-                    onChange={(e) => {
-                      setCustomCaption(e.target.value);
-                      if (e.target.value) setSelectedCaption('');
-                    }}
-                    placeholder={selectedCaption || "여행의 소중한 감상을 한 마디 적어주세요..."}
-                    className="w-full px-5 py-4 rounded-3xl border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none transition-all bg-white font-medium resize-none shadow-sm min-h-[120px]"
-                  />
-                  {customCaption && (
-                    <div className="absolute bottom-4 right-5 text-[10px] text-slate-400 font-bold font-mono">
-                      {customCaption.length} CHARS
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Progress Message */}
               {progressMessage && (

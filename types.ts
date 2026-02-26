@@ -88,8 +88,8 @@ export interface Itinerary {
   participantCount?: number;
 }
 
-export type ExpenseCategory = 'food' | 'transport' | 'accommodation' | 'shopping' | 'activity' | 'flight' | 'other';
-export type Currency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'CNY';
+export type ExpenseCategory = 'food' | 'transport' | 'accommodation' | 'shopping' | 'activity' | 'flight' | 'golf' | 'other';
+export type Currency = 'KRW' | 'USD' | 'EUR' | 'JPY' | 'CNY' | 'THB';
 
 export interface Expense {
   id: string;
@@ -99,6 +99,8 @@ export interface Expense {
   category: ExpenseCategory;
   amount: number;
   currency: string;
+  exchangeRate?: number;
+  amountKRW?: number;
   description: string;
   receiptUrl?: string;
   isOCR: boolean;
