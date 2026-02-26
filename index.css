@@ -30,6 +30,7 @@ body {
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    word-break: keep-all;
 }
 
 /* Glassmorphism Utilities */
