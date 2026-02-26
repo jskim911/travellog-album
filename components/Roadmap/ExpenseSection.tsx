@@ -83,7 +83,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
             setExpenses(allExpenses);
             calculateStats(allExpenses);
         }
-    }, [selectedTripId, allExpenses, allTrips]);
+    }, [selectedTripId, allExpenses, allTrips, selectedTrip]);
 
     // 3. Subscribe logic removed (Props used instead)
 
@@ -94,9 +94,17 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
         // Smart Per-person Calculation
         const individualTotal = data.reduce((sum, item) => {
             const amount = Number(item.amountKRW) || Number(item.amount) || 0;
-            // Find the trip participant count for this expense
-            const trip = allTrips.find(t => t.id === item.itineraryId);
-            const pCount = Math.max(1, Number(trip?.participantCount || 1));
+
+            // 1. If we are in a selected trip view, use selectedTrip info for faster/consistent response
+            let pCount = 1;
+            if (selectedTripId && item.itineraryId === selectedTripId && selectedTrip) {
+                pCount = Math.max(1, Number(selectedTrip.participantCount || 1));
+            } else {
+                // 2. Otherwise find the trip in allTrips (for mixed view or legacy)
+                const trip = allTrips.find(t => t.id === item.itineraryId);
+                pCount = Math.max(1, Number(trip?.participantCount || 1));
+            }
+
             return sum + (amount / pCount);
         }, 0);
         setTotalIndividualAmount(individualTotal);
