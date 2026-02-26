@@ -709,38 +709,38 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header Area: Grid Layout to prevent overlapping */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 mb-10 pb-8 border-b border-slate-100">
+            <div className={`grid grid-cols-1 lg:grid-cols-[1fr_auto] ${isSmartphoneMode ? 'gap-3 mb-6 pb-4' : 'gap-6 mb-10 pb-8'} border-b border-slate-100`}>
                 <div className="flex items-start gap-4 min-w-0">
                     <button
                         onClick={() => onSelectTrip(null)}
-                        className="mt-1 p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-2xl transition-all flex-shrink-0"
+                        className={`${isSmartphoneMode ? 'mt-0.5 p-2' : 'mt-1 p-2.5'} bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-2xl transition-all flex-shrink-0`}
                         title="목록으로"
                     >
-                        <ArrowLeft size={22} />
+                        <ArrowLeft size={isSmartphoneMode ? 18 : 22} />
                     </button>
 
                     <div className="flex-1 min-w-0 group cursor-pointer" onClick={startEditingTripInfo}>
-                        <div className="flex flex-wrap items-center gap-3 mb-2">
-                            <h2 className={`${isSmartphoneMode ? 'text-2xl' : 'text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all`}>
+                        <div className={`flex flex-wrap items-center ${isSmartphoneMode ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
+                            <h2 className={`${isSmartphoneMode ? 'text-lg' : 'text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all`}>
                                 {currentTrip.tripName}
                             </h2>
-                            <span className="p-1.5 bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
-                                <Edit2 size={18} />
+                            <span className={`p-1 bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1`}>
+                                <Edit2 size={isSmartphoneMode ? 14 : 18} />
                             </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-slate-500 text-sm sm:text-base font-medium">
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
-                                <CalendarIcon size={14} className="text-violet-400" />
+                        <div className={`flex flex-wrap items-center gap-y-1 ${isSmartphoneMode ? 'gap-x-2 text-[10px]' : 'gap-x-4 text-sm sm:text-base'} text-slate-500 font-medium`}>
+                            <div className={`flex items-center gap-1 ${isSmartphoneMode ? 'px-2 py-0.5' : 'px-3 py-1'} bg-slate-50 rounded-full border border-slate-100`}>
+                                <CalendarIcon size={isSmartphoneMode ? 10 : 14} className="text-violet-400" />
                                 <span>{new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}</span>
                             </div>
-                            <div className="flex items-center gap-4">
-                                <span className="flex items-center gap-1.5">
-                                    <Clock size={14} className="text-slate-400" />
+                            <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
+                                    <Clock size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
                                     {currentTrip.routes.length} Days
                                 </span>
                                 <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                <span className="flex items-center gap-1.5">
-                                    <LayoutList size={14} className="text-slate-400" />
+                                <span className="flex items-center gap-1">
+                                    <LayoutList size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
                                     {currentTrip.participantCount || 1}명 참여
                                 </span>
                             </div>
@@ -777,40 +777,41 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 key={route.id}
                                 onClick={() => setSelectedDayIndex(index)}
                                 className={`
-                  flex-shrink-0 flex items-center justify-between transition-all text-left px-5 py-4 rounded-[1.25rem] border group
+                  flex-shrink-0 flex items-center justify-between transition-all text-left rounded-[1.25rem] border group
+                  ${isSmartphoneMode ? 'px-3 py-2.5' : 'px-5 py-4'}
                   ${selectedDayDayIndex === index
                                         ? 'bg-violet-600 border-violet-600 text-white shadow-xl shadow-violet-200 scale-[1.02]'
                                         : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-200'
                                     }
                 `}
                             >
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                    <span className={`text-[11px] font-black uppercase tracking-wider mb-0.5 ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                <div className="flex flex-col gap-0 min-w-0">
+                                    <span className={`text-[9px] font-black uppercase tracking-wider ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
                                         Day {index + 1}
                                     </span>
-                                    <div className="flex items-center gap-1.5 overflow-hidden">
-                                        <span className={`font-black text-base truncate ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
+                                    <div className="flex items-center gap-1 overflow-hidden">
+                                        <span className={`font-black ${isSmartphoneMode ? 'text-sm' : 'text-base'} truncate ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
                                             {getDayShortDate(index)}
                                         </span>
-                                        <span className={`text-xs font-bold whitespace-nowrap opacity-60`}>
+                                        <span className={`text-[10px] font-bold whitespace-nowrap opacity-60`}>
                                             ({getDayOnlyDay(index)})
                                         </span>
                                     </div>
                                 </div>
-                                <ChevronRight size={18} className={`transition-transform duration-300 ${selectedDayDayIndex === index ? 'translate-x-1 opacity-100' : 'opacity-0 -translate-x-2'}`} />
+                                {!isSmartphoneMode && <ChevronRight size={18} className={`transition-transform duration-300 ${selectedDayDayIndex === index ? 'translate-x-1 opacity-100' : 'opacity-0 -translate-x-2'}`} />}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 {/* Right: Timeline Content (Main Body) */}
-                <div className="flex-1 w-full bg-slate-50/50 rounded-[2.5rem] p-6 sm:p-10 border border-slate-100 min-h-[600px] shadow-inner">
-                    <div className="flex items-center justify-between mb-6">
+                <div className={`flex-1 w-full bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner ${isSmartphoneMode ? 'p-3.5 min-h-[400px]' : 'p-6 sm:p-10 min-h-[600px]'}`}>
+                    <div className={`flex items-center justify-between ${isSmartphoneMode ? 'mb-4' : 'mb-6'}`}>
                         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-xs rounded-lg">
+                            <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] rounded-lg">
                                 Day {selectedDayDayIndex + 1} ({getDayShortDate(selectedDayDayIndex)})
                             </span>
-                            <span className="text-xs sm:text-base text-slate-500 font-normal">
+                            <span className="text-[11px] sm:text-base text-slate-500 font-normal">
                                 {getDayDate(selectedDayDayIndex)}
                             </span>
                         </h3>
@@ -880,37 +881,37 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all h-full flex flex-col relative">
+                                        <div className={`bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-violet-200 transition-all h-full flex flex-col relative ${isSmartphoneMode ? 'p-3' : 'p-4'}`}>
                                             <div className="flex items-start justify-between mb-2">
                                                 {place.visitTime ? (
-                                                    <div className="flex items-center gap-1.5 font-bold text-violet-600 bg-violet-50 px-2 py-1 rounded-lg text-xs">
-                                                        <Clock size={14} />
+                                                    <div className={`flex items-center font-bold text-violet-600 bg-violet-50 rounded-lg ${isSmartphoneMode ? 'gap-1 px-1.5 py-0.5 text-[10px]' : 'gap-1.5 px-2 py-1 text-xs'}`}>
+                                                        <Clock size={isSmartphoneMode ? 12 : 14} />
                                                         {place.visitTime}
                                                     </div>
                                                 ) : (
-                                                    <div className="text-xs text-slate-400 px-2 py-1 bg-slate-50 rounded-lg">시간 미정</div>
+                                                    <div className={`${isSmartphoneMode ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} text-slate-400 bg-slate-50 rounded-lg`}>시간 미정</div>
                                                 )}
 
                                                 <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditingPlace(idx, place)}
-                                                        className="p-1.5 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
+                                                        className={`${isSmartphoneMode ? 'p-1' : 'p-1.5'} text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all`}
                                                         title="수정"
                                                     >
-                                                        <PenTool size={16} />
+                                                        <PenTool size={isSmartphoneMode ? 14 : 16} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeletePlace(selectedDayDayIndex, idx)}
-                                                        className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                        className={`${isSmartphoneMode ? 'p-1' : 'p-1.5'} text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all`}
                                                         title="삭제"
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={isSmartphoneMode ? 14 : 16} />
                                                     </button>
                                                 </div>
                                             </div>
 
                                             {/* Place Name: Robust wrapping for premium visibility */}
-                                            <h4 className={`${isSmartphoneMode ? 'text-base' : 'text-xl'} font-black text-slate-800 mb-2 leading-snug break-all`}>
+                                            <h4 className={`${isSmartphoneMode ? 'text-[13px] font-bold' : 'text-xl font-black'} text-slate-800 mb-1 leading-snug break-all`}>
                                                 {place.name}
                                             </h4>
 
