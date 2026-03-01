@@ -18,6 +18,7 @@ import { LoginModal } from './components/LoginModal';
 import { SignupModal } from './components/SignupModal';
 import { AdminPanel } from './components/AdminPanel';
 import { ProfileEditModal } from './components/ProfileEditModal';
+import { GolfPage } from './components/Golf/GolfPage';
 import { Album, User, UserStatus } from './types';
 import { useAuth } from './src/hooks/useAuth';
 
@@ -27,7 +28,7 @@ const App: React.FC = () => {
   const authLoading = authData?.loading;
   const signOut = authData?.signOut;
 
-  const [currentPage, setCurrentPage] = useState<'gallery' | 'roadmap'>('gallery');
+  const [currentPage, setCurrentPage] = useState<'gallery' | 'roadmap' | 'golf'>('gallery');
   const [roadmapTab, setRoadmapTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,6 +215,7 @@ const App: React.FC = () => {
                   <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('itinerary'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'itinerary') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>여행일정</button>
                   <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('expenses'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'expenses') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>비용관리</button>
                   <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('materials'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'materials') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>자료보관함</button>
+                  <button onClick={() => setCurrentPage('golf')} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${currentPage === 'golf' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>골프스코어</button>
                 </div>
               )}
             </div>
@@ -240,7 +242,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="w-full px-4 sm:px-6 lg:px-8 pt-6">
+      <main className={`w-full ${isSmartphoneMode ? 'px-0 pt-4' : 'px-6 lg:px-8 pt-6'}`}>
         {user && userStatus === 'pending' && (
           <div className="max-w-4xl mx-auto mb-8 p-8 bg-white border border-yellow-200 rounded-[2rem] text-center shadow-xl shadow-yellow-50/50">
             <h3 className="text-xl font-black text-slate-900 mb-2">승인 대기 중입니다 ⏳</h3>
@@ -256,6 +258,10 @@ const App: React.FC = () => {
             onBack={() => setCurrentPage('gallery')}
             activeTab={roadmapTab}
           />
+        ) : currentPage === 'golf' && userStatus === 'approved' ? (
+          <div className="w-full">
+            <GolfPage userId={user?.uid || ''} isSmartphoneMode={isSmartphoneMode} />
+          </div>
         ) : (
           <>
             {user && userStatus === 'approved' && (
@@ -405,6 +411,18 @@ const App: React.FC = () => {
             >
               <DollarSign size={22} strokeWidth={(currentPage === 'roadmap' && roadmapTab === 'expenses') ? 2.5 : 2} />
               <span style={{ fontSize: '10px', fontWeight: 700 }}>비용관리</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentPage('golf')}
+              className="flex flex-col items-center gap-0.5 py-2 px-3 rounded-2xl transition-all"
+              style={{
+                color: currentPage === 'golf' ? '#6366f1' : '#94a3b8',
+                background: currentPage === 'golf' ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
+              }}
+            >
+              <Grid3x3 size={22} strokeWidth={currentPage === 'golf' ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>골프</span>
             </button>
 
             <button

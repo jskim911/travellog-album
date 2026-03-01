@@ -80,33 +80,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     const selectedTrip = (allTrips && Array.isArray(allTrips)) ? allTrips.find(t => t.id === selectedTripId) || null : null;
 
     return (
-        <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? 'pb-24' : ''}`}>
-            {/* Header */}
-            <div className={`mb-6 flex ${isSmartphoneMode ? 'items-start' : 'items-center'} justify-between gap-2 sm:gap-4`}>
-                <div className="flex items-center gap-2 sm:gap-4">
-                    {onBack && (
-                        <button
-                            onClick={onBack}
-                            className={`p-2 sm:p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-xl sm:rounded-2xl transition-all shadow-sm group shrink-0 ${isSmartphoneMode ? 'mt-1' : ''}`}
-                            title="갤러리로 돌아가기"
-                        >
-                            <ArrowLeft size={isSmartphoneMode ? 18 : 20} className="group-hover:-translate-x-0.5 transition-transform" />
-                        </button>
-                    )}
-                    <div>
-                        <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-0.5 sm:mb-1 flex items-center gap-1.5 sm:gap-2">
-                            <Map className="text-violet-600 w-5 h-5 sm:w-8 sm:h-8 shrink-0" />
-                            <span className="truncate">여행계획</span>
-                        </h1>
-                        <p className="text-[10px] sm:text-xs text-slate-500 truncate">여행 일정과 경비를 스마트하게 관리하세요.</p>
-                    </div>
-                </div>
-                {/* Actions Portal Target */}
-                <div ref={setHeaderActionsEl} className="flex-shrink-0 flex items-center justify-end" />
-            </div>
+        <div className={`max-w-6xl mx-auto ${isSmartphoneMode ? 'px-0 py-4 pb-24' : 'px-4 py-8'}`}>
+            {/* Header removed for PC view to maximize space */}
 
             {/* Content Area */}
-            <div className={`bg-white rounded-3xl border border-slate-200 shadow-sm min-h-[600px] ${isSmartphoneMode ? 'p-4 sm:p-6' : 'p-6 sm:p-8'}`}>
+            <div className={`bg-white min-h-[600px] ${isSmartphoneMode ? 'p-0 rounded-none border-y border-slate-100 shadow-none' : 'p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm'}`}>
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, PieChart, Trash2, Download, Calendar, Users, Pencil, FileImage, Maximize2, X } from 'lucide-react';
+import { Plus, PieChart, Trash2, Download, Calendar, Users, Pencil, FileImage, Maximize2, X, ArrowLeft } from 'lucide-react';
 import { collection, query, where, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import html2canvas from 'html2canvas';
@@ -224,15 +224,25 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                 </div>
             )}
 
-            <div ref={printRef} className={`space-y-6 ${isCompact ? 'p-3' : 'p-5'} bg-white rounded-2xl border border-slate-100 shadow-sm`}>
+            <div ref={printRef} className={`space-y-6 ${isCompact ? 'p-4 rounded-none border-x-0' : 'p-5 rounded-2xl border shadow-sm'} bg-white border-slate-100`}>
 
                 {/* Trip Header + Summary - Compact */}
                 <div className={`${isCompact ? 'pb-3' : 'pb-4'} border-b border-slate-100`}>
                     {currentTrip ? (
                         <>
-                            <h1 className={`${isCompact ? 'text-lg mb-1' : 'text-2xl mb-2'} font-black text-slate-900 tracking-tight truncate`} translate="no">
-                                {currentTrip.tripName}
-                            </h1>
+                            <div className="flex items-center gap-2 mb-1">
+                                {isCompact && (
+                                    <button
+                                        onClick={() => window.history.back()}
+                                        className="p-1.5 bg-slate-50 text-slate-500 rounded-lg shrink-0"
+                                    >
+                                        <ArrowLeft size={16} />
+                                    </button>
+                                )}
+                                <h1 className={`${isCompact ? 'text-lg' : 'text-2xl mb-2'} font-black text-slate-900 tracking-tight truncate flex-1`} translate="no">
+                                    {currentTrip.tripName}
+                                </h1>
+                            </div>
                             {!isCompact && (
                                 <div className="flex flex-wrap items-center gap-3 text-slate-400 text-xs font-medium mb-4">
                                     <span className="flex items-center gap-1">

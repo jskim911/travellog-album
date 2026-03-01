@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Image as ImageIcon, Trash2, Download, ExternalLink, Loader2 } from 'lucide-react';
+import { Upload, FileText, Image as ImageIcon, Trash2, Download, ExternalLink, Loader2, ArrowLeft } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../firebase';
@@ -126,16 +126,28 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
     };
 
     return (
-        <div className="animate-in fade-in duration-500">
+        <div className={`animate-in fade-in duration-500 ${isSmartphoneMode ? 'px-4' : ''}`}>
             {/* Header - Compact */}
             <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <div>
-                    <h2 className={`${isSmartphoneMode ? 'text-base' : 'text-xl'} font-bold text-slate-800`}>
-                        자료 보관함
-                    </h2>
-                    <p className={`${isSmartphoneMode ? 'text-[10px]' : 'text-sm'} text-slate-500 line-clamp-1`}>
-                        모든 여행 자료를 한곳에서 관리하세요.
-                    </p>
+                <div className="flex items-center gap-2">
+                    {isSmartphoneMode && (
+                        <button
+                            onClick={() => window.history.back()}
+                            className="p-1.5 bg-slate-50 text-slate-500 rounded-lg"
+                        >
+                            <ArrowLeft size={16} />
+                        </button>
+                    )}
+                    <div>
+                        <h2 className={`${isSmartphoneMode ? 'text-base' : 'text-xl'} font-bold text-slate-800`}>
+                            자료 보관함
+                        </h2>
+                        {!isSmartphoneMode && (
+                            <p className="text-sm text-slate-500 line-clamp-1">
+                                모든 여행 자료를 한곳에서 관리하세요.
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div>
                     <input

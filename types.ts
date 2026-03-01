@@ -168,3 +168,14 @@ export interface Notice {
   updatedAt: any;
   isPriority?: boolean;
 }
+export interface GolfScore {
+  id: string;
+  userId: string;
+  courseName: string;
+  participants: string[];
+  holePars: number[];
+  scores: { [playerIndex: number]: number[] };
+  createdAt: any;
+  date: string;
+  courseImageUrl?: string;
+}

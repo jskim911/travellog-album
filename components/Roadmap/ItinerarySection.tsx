@@ -632,14 +632,24 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     if (viewMode === 'list') {
         return (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900`}>내 여행 목록</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        {isSmartphoneMode && onBack && (
+                            <button
+                                onClick={onBack}
+                                className="p-2 bg-white border border-slate-200 text-slate-500 rounded-xl shadow-sm"
+                            >
+                                <ArrowLeft size={18} />
+                            </button>
+                        )}
+                        <h2 className={`${isSmartphoneMode ? 'text-xl' : 'text-3xl'} font-black text-slate-900`}>내 여행 목록</h2>
+                    </div>
                     <button
                         onClick={() => setIsCreating(true)}
-                        className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-full shadow-lg transition-all"
+                        className={`flex items-center gap-2 ${isSmartphoneMode ? 'px-4 py-2 text-sm' : 'px-6 py-3'} bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-full shadow-lg transition-all`}
                     >
-                        <Plus size={20} />
-                        새 여행 추가
+                        <Plus size={isSmartphoneMode ? 16 : 20} />
+                        {isSmartphoneMode ? '추가' : '새 여행 추가'}
                     </button>
                 </div>
 
@@ -705,39 +715,39 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header Area: Grid Layout to prevent overlapping */}
-            <div className={`grid grid-cols-1 lg:grid-cols-[1fr_auto] ${isSmartphoneMode ? 'gap-3 mb-6 pb-4' : 'gap-6 mb-10 pb-8'} border-b border-slate-100`}>
-                <div className="flex items-start gap-4 min-w-0">
+            <div className={`grid grid-cols-1 lg:grid-cols-[1fr_auto] ${isSmartphoneMode ? 'gap-3 mb-6 px-4 pb-4' : 'gap-6 mb-10 pb-8'} border-b border-slate-100`}>
+                <div className="flex items-start gap-3 min-w-0">
                     <button
                         onClick={() => onSelectTrip(null)}
-                        className={`${isSmartphoneMode ? 'mt-0.5 p-2' : 'mt-1 p-2.5'} bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-2xl transition-all flex-shrink-0`}
+                        className={`${isSmartphoneMode ? 'p-1.5' : 'mt-1 p-2.5'} bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all flex-shrink-0`}
                         title="목록으로"
                     >
-                        <ArrowLeft size={isSmartphoneMode ? 18 : 22} />
+                        <ArrowLeft size={isSmartphoneMode ? 16 : 22} />
                     </button>
 
                     <div className="flex-1 min-w-0 group cursor-pointer" onClick={() => startEditingTripInfo()}>
-                        <div className="flex flex-wrap items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
-                            <h2 className="text-xl md:text-2xl lg:text-4xl font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all">
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <h2 className={`${isSmartphoneMode ? 'text-lg' : 'text-xl md:text-2xl lg:text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 truncate`}>
                                 {currentTrip.tripName}
                             </h2>
-                            <span className="p-1 lg:p-1.5 bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
-                                <Edit2 size={isSmartphoneMode ? 14 : 18} />
+                            <span className="p-1 bg-slate-50 text-slate-300 rounded-md opacity-0 group-hover:opacity-100 transition-all">
+                                <Edit2 size={isSmartphoneMode ? 12 : 18} />
                             </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 lg:gap-x-4 lg:gap-y-2 text-[10px] sm:text-xs lg:text-base text-slate-500 font-medium">
-                            <div className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-3 py-0.5 lg:py-1 bg-slate-50 rounded-full border border-slate-100">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-xs lg:text-base text-slate-500 font-medium">
+                            <div className="flex items-center gap-1 px-2 py-0.5 bg-slate-50 rounded-full border border-slate-100">
                                 <CalendarIcon size={isSmartphoneMode ? 10 : 14} className="text-violet-400" />
-                                <span>{new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}</span>
+                                <span>{getDayShortDate(0)} - {getDayShortDate(currentTrip.routes.length - 1)}</span>
                             </div>
-                            <div className={`flex items-center ${isSmartphoneMode ? 'gap-2' : 'gap-4'}`}>
-                                <span className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
                                     <Clock size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
-                                    {currentTrip.routes.length} Days
+                                    {currentTrip.routes.length}D
                                 </span>
                                 <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                <span className="flex items-center gap-1.5">
+                                <span className="flex items-center gap-1">
                                     <LayoutList size={isSmartphoneMode ? 10 : 14} className="text-slate-400" />
-                                    {currentTrip.participantCount || 1}명 참여
+                                    {currentTrip.participantCount || 1}명
                                 </span>
                             </div>
                         </div>
@@ -749,7 +759,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                     const newTripButton = (
                         <button
                             onClick={() => setIsCreating(true)}
-                            className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-2.5 py-2 text-[11px] sm:text-xs rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-violet-600 hover:bg-violet-700 text-white font-bold transition-all shadow-md active:scale-95 group`}
+                            className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-3 py-2 text-[11px] rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-violet-600 hover:bg-violet-700 text-white font-bold transition-all shadow-md active:scale-95 group`}
                             title="여행 추가"
                         >
                             <Plus size={isSmartphoneMode ? 14 : 18} className="transition-transform group-hover:rotate-90" />
@@ -758,16 +768,18 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                     );
 
                     const otherButtonsContainer = (
-                        <div className={`flex items-center ${isSmartphoneMode ? 'gap-1.5 w-full overflow-x-auto scrollbar-hide pb-1' : 'gap-3 self-start lg:self-center'} bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50`}>
-                            {(!isSmartphoneMode || !headerActionsEl) && newTripButton}
+                        <div className={`flex items-center ${isSmartphoneMode ? 'gap-1.5 w-full overflow-x-auto scrollbar-hide pb-0.5 px-0.5' : 'gap-3 self-start lg:self-center'} bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50`}>
+                            {/* Always show newTripButton in this row for mobile since main header is hidden */}
+                            {(isSmartphoneMode || !headerActionsEl) && newTripButton}
+
                             <button
                                 onClick={() => setShowVisualMap(true)}
-                                className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-2.5 py-2 text-[10px] sm:text-[11px] rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md font-bold transition-all shadow-sm group`}
+                                className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-3 py-2 text-[11px] rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md font-bold transition-all shadow-sm group`}
                             >
                                 <MapIcon size={isSmartphoneMode ? 14 : 18} className="transition-transform group-hover:rotate-12" />
                                 <span className="whitespace-nowrap">로드맵 보기</span>
                             </button>
-                            <div className="w-px h-5 sm:h-6 bg-slate-200 mx-0.5 shrink-0" />
+                            <div className="w-px h-5 bg-slate-200 mx-0.5 shrink-0" />
                             <button
                                 onClick={() => handleDeleteTrip(currentTrip)}
                                 className={`shrink-0 ${isSmartphoneMode ? 'p-1.5 rounded-lg' : 'p-2.5 rounded-xl'} text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all hover:rotate-12`}
@@ -778,13 +790,12 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                         </div>
                     );
 
-                    if (isSmartphoneMode && headerActionsEl) {
-                        return (
-                            <>
-                                {createPortal(newTripButton, headerActionsEl)}
-                                {otherButtonsContainer}
-                            </>
-                        );
+                    if (isSmartphoneMode) {
+                        return <div className="px-4">{otherButtonsContainer}</div>;
+                    }
+
+                    if (headerActionsEl) {
+                        return createPortal(newTripButton, headerActionsEl);
                     }
                     return otherButtonsContainer;
                 })()}
@@ -793,7 +804,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
             <div className={`flex flex-col ${isSmartphoneMode ? 'gap-6' : 'lg:flex-row gap-10'} items-start`}>
                 {/* Left: Day Selector (Sidebar Style) */}
                 <div className="w-full lg:w-[18rem] flex-shrink-0 sticky top-4">
-                    <div className="flex overflow-x-auto lg:overflow-visible lg:flex-col gap-2.5 lg:gap-3 pb-2 lg:pb-0 scrollbar-hide">
+                    <div className={`flex overflow-x-auto lg:overflow-visible lg:flex-col gap-2.5 lg:gap-3 pb-2 lg:pb-0 scrollbar-hide ${isSmartphoneMode ? 'px-4' : ''}`}>
                         {currentTrip.routes.map((route, index) => (
                             <button
                                 key={route.id}
@@ -830,7 +841,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 </div>
 
                 {/* Right: Timeline Content (Main Body) */}
-                <div className={`flex-1 w-full bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner ${isSmartphoneMode ? 'p-3.5 min-h-[400px]' : 'p-6 sm:p-10 min-h-[600px]'}`}>
+                <div className={`flex-1 w-full bg-slate-50/50 border-slate-100 shadow-inner ${isSmartphoneMode ? 'p-3.5 min-h-[400px] border-y rounded-none' : 'p-6 sm:p-10 min-h-[600px] border rounded-[2.5rem]'}`}>
                     <div className="flex items-center justify-between mb-4 lg:mb-6">
                         <h3 className="text-base lg:text-lg font-bold text-slate-800 flex items-center gap-2">
                             <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] lg:text-xs rounded-lg">
