@@ -13,16 +13,17 @@ interface RoadmapPageProps {
     selectedTripId: string | null;
     onSelectTrip: (id: string | null) => void;
     onBack?: () => void;
+    activeTab: 'itinerary' | 'expenses' | 'materials';
 }
 
 export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     isSmartphoneMode = false,
     selectedTripId,
     onSelectTrip,
-    onBack
+    onBack,
+    activeTab
 }) => {
     const { user, loading: authLoading } = useAuth();
-    const [activeTab, setActiveTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
     const [allTrips, setAllTrips] = useState<Itinerary[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -78,7 +79,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     const selectedTrip = (allTrips && Array.isArray(allTrips)) ? allTrips.find(t => t.id === selectedTripId) || null : null;
 
     return (
-        <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? '' : ''}`}>
+        <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? 'pb-24' : ''}`}>
             {/* Header */}
             <div className="mb-6 flex items-center gap-4">
                 {onBack && (
@@ -97,40 +98,6 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                     </h1>
                     <p className="text-xs text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
                 </div>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div className="flex p-1 bg-slate-100 rounded-xl mb-6 w-full sm:w-fit overflow-x-auto scrollbar-hide">
-                <button
-                    onClick={() => setActiveTab('itinerary')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'itinerary'
-                        ? 'bg-white text-violet-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <Calendar size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    여행 일정
-                </button>
-                <button
-                    onClick={() => setActiveTab('expenses')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'expenses'
-                        ? 'bg-white text-emerald-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <DollarSign size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    비용 관리
-                </button>
-                <button
-                    onClick={() => setActiveTab('materials')}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-lg text-[10px] sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'materials'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <FileText size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    자료 보관함
-                </button>
             </div>
 
             {/* Content Area */}

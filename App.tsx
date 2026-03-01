@@ -3,7 +3,7 @@ import {
   Camera, PlusCircle, LayoutGrid, Settings, LogOut, User as UserIcon, Shield,
   Clock, Calendar as CalendarIcon, MapPin as MapPinIcon, Grid3x3, Download,
   Smartphone, Monitor, Home, X, CheckCircle2, Trash2, BookOpen, Map,
-  Image as ImageIcon
+  Image as ImageIcon, DollarSign
 } from 'lucide-react';
 import { collection, query, onSnapshot, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const signOut = authData?.signOut;
 
   const [currentPage, setCurrentPage] = useState<'gallery' | 'roadmap'>('gallery');
+  const [roadmapTab, setRoadmapTab] = useState<'itinerary' | 'expenses' | 'materials'>('itinerary');
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -201,35 +202,37 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-50 glass border-b border-white/20">
         <div className="w-full px-4 sm:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            <div className="flex items-center gap-4">
-              <div className="relative cursor-pointer group" onClick={() => setCurrentPage('gallery')}>
-                <div className="w-11 h-11 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-600 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all">
-                  <Camera size={24} className="text-white" />
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0 pr-2">
+              <div className="relative cursor-pointer group shrink-0" onClick={() => setCurrentPage('gallery')}>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-600 to-sky-500 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all">
+                  <Camera size={22} className="text-white sm:w-6 sm:h-6" />
                 </div>
               </div>
               {user && userStatus === 'approved' && (
-                <div className="flex ml-2 sm:ml-10 p-1 sm:p-1.5 bg-slate-200/50 rounded-2xl text-[13px] sm:text-[15px]">
-                  <button onClick={() => setCurrentPage('gallery')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'gallery' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>갤러리</button>
-                  <button onClick={() => setCurrentPage('roadmap')} className={`px-4 sm:px-8 py-2 sm:py-3 rounded-xl font-extrabold tracking-tight transition-all ${currentPage === 'roadmap' ? 'bg-white text-indigo-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>여행계획</button>
+                <div className="flex p-1 bg-slate-200/50 rounded-xl text-[11px] sm:text-[14px] overflow-x-auto scrollbar-hide">
+                  <button onClick={() => setCurrentPage('gallery')} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${currentPage === 'gallery' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>갤러리</button>
+                  <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('itinerary'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'itinerary') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>여행일정</button>
+                  <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('expenses'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'expenses') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>비용관리</button>
+                  <button onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('materials'); }} className={`whitespace-nowrap px-2.5 sm:px-5 py-1.5 sm:py-2.5 rounded-lg font-extrabold tracking-tight transition-all ${(currentPage === 'roadmap' && roadmapTab === 'materials') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>자료보관함</button>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {authLoading ? (
-                <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-200 animate-pulse" />
               ) : user ? (
                 <>
-                  {isAdmin && <button onClick={() => setIsAdminPanelOpen(true)} className="p-2.5 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"><Shield size={18} /></button>}
-                  <div onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-3 px-1.5 py-1.5 pr-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group">
-                    <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} alt="User" className="w-9 h-9 rounded-xl object-cover group-hover:scale-105 transition-transform" />
-                    <span className="hidden sm:block text-xs font-black group-hover:text-indigo-600">{user.displayName}님</span>
+                  {isAdmin && <button onClick={() => setIsAdminPanelOpen(true)} className="p-2 sm:p-2.5 text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"><Shield size={18} /></button>}
+                  <div onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-2 sm:gap-3 px-1.5 py-1.5 pr-3 sm:pr-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group">
+                    <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover group-hover:scale-105 transition-transform shrink-0" />
+                    <span className="hidden lg:block text-xs font-black group-hover:text-indigo-600 truncate max-w-[100px] sm:max-w-[150px]">{user.displayName}님</span>
                   </div>
-                  <button onClick={() => signOut?.()} className="p-2.5 text-slate-400 hover:text-red-500 transition-colors"><LogOut size={20} /></button>
+                  <button onClick={() => signOut?.()} className="p-2 sm:p-2.5 text-slate-400 hover:text-red-500 transition-colors shrink-0"><LogOut size={18} className="sm:w-5 sm:h-5" /></button>
                 </>
               ) : (
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setIsLoginModalOpen(true)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900">로그인</button>
-                  <button onClick={() => setIsSignupModalOpen(true)} className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-black rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all">회원가입</button>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <button onClick={() => setIsLoginModalOpen(true)} className="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 whitespace-nowrap">로그인</button>
+                  <button onClick={() => setIsSignupModalOpen(true)} className="px-3 sm:px-6 py-2 sm:py-2.5 bg-indigo-600 text-white text-xs sm:text-sm font-black rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all whitespace-nowrap">회원가입</button>
                 </div>
               )}
             </div>
@@ -251,6 +254,7 @@ const App: React.FC = () => {
             selectedTripId={selectedTripId}
             onSelectTrip={setSelectedTripId}
             onBack={() => setCurrentPage('gallery')}
+            activeTab={roadmapTab}
           />
         ) : (
           <>
@@ -380,15 +384,27 @@ const App: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setCurrentPage('roadmap')}
-              className="flex flex-col items-center gap-0.5 py-2 px-4 rounded-2xl transition-all"
+              onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('itinerary'); }}
+              className="flex flex-col items-center gap-0.5 py-2 px-3 rounded-2xl transition-all"
               style={{
-                color: currentPage === 'roadmap' ? '#6366f1' : '#94a3b8',
-                background: currentPage === 'roadmap' ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
+                color: (currentPage === 'roadmap' && roadmapTab === 'itinerary') ? '#6366f1' : '#94a3b8',
+                background: (currentPage === 'roadmap' && roadmapTab === 'itinerary') ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
               }}
             >
-              <CalendarIcon size={22} strokeWidth={currentPage === 'roadmap' ? 2.5 : 2} />
-              <span style={{ fontSize: '10px', fontWeight: 700 }}>여행계획</span>
+              <CalendarIcon size={22} strokeWidth={(currentPage === 'roadmap' && roadmapTab === 'itinerary') ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>여행일정</span>
+            </button>
+
+            <button
+              onClick={() => { setCurrentPage('roadmap'); setRoadmapTab('expenses'); }}
+              className="flex flex-col items-center gap-0.5 py-2 px-3 rounded-2xl transition-all"
+              style={{
+                color: (currentPage === 'roadmap' && roadmapTab === 'expenses') ? '#6366f1' : '#94a3b8',
+                background: (currentPage === 'roadmap' && roadmapTab === 'expenses') ? 'rgba(99, 102, 241, 0.08)' : 'transparent'
+              }}
+            >
+              <DollarSign size={22} strokeWidth={(currentPage === 'roadmap' && roadmapTab === 'expenses') ? 2.5 : 2} />
+              <span style={{ fontSize: '10px', fontWeight: 700 }}>비용관리</span>
             </button>
 
             <button

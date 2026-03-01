@@ -44,8 +44,11 @@ export const NoticeBoard: React.FC<NoticeBoardProps> = ({
                 ...doc.data()
             })) as Notice[];
 
-            // 클라이언트사이드 정렬 (createdAt 내림차순)
+            // 클라이언트사이드 정렬 (isPriority 최우선, 그 다음 createdAt 내림차순)
             const sorted = fetched.sort((a, b) => {
+                if (a.isPriority && !b.isPriority) return -1;
+                if (!a.isPriority && b.isPriority) return 1;
+
                 const aTime = a.createdAt?.seconds || 0;
                 const bTime = b.createdAt?.seconds || 0;
                 return bTime - aTime;
@@ -152,49 +155,56 @@ export const NoticeBoard: React.FC<NoticeBoardProps> = ({
                 )}
             </div>
 
-            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+            <div className="w-full">
                 {isLoading ? (
-                    <div className="p-12 text-center">
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 p-12 text-center">
                         <div className="inline-block w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
                         <p className="text-slate-400 font-bold text-sm">소식을 불러오는 중...</p>
                     </div>
                 ) : notices.length === 0 ? (
-                    <div className="p-16 text-center">
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 p-16 text-center">
                         <Bell size={40} className="mx-auto text-slate-200 mb-4" />
                         <p className="text-slate-400 font-extrabold">등록된 공지사항이 없습니다.</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {notices.map((notice) => (
                             <motion.div
                                 key={notice.id}
-                                whileHover={{ backgroundColor: 'rgba(248, 250, 252, 0.5)' }}
+                                whileHover={{ y: -4 }}
                                 onClick={() => setSelectedNotice(notice)}
-                                className={`p-5 sm:p-6 cursor-pointer transition-all flex items-center gap-4 group ${notice.isPriority ? 'bg-indigo-50/30' : ''}`}
+                                className={`p-5 sm:p-6 cursor-pointer bg-white rounded-3xl border shadow-sm hover:shadow-xl transition-all flex flex-col group ${notice.isPriority ? 'border-indigo-200 shadow-indigo-100/50' : 'border-slate-100 shadow-slate-200/40'}`}
                             >
-                                <div className={`flex-shrink-0 w-2 h-2 rounded-full ${notice.isPriority ? 'bg-indigo-500 shadow-lg shadow-indigo-200 animate-pulse' : 'bg-slate-200'}`} />
-                                <div className="flex-grow min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {notice.isPriority && (
-                                            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-black rounded-md uppercase tracking-wider">주요</span>
-                                        )}
-                                        <h3 className={`text-[15px] sm:text-base font-bold text-slate-800 truncate group-hover:text-indigo-600 transition-colors`}>
-                                            {notice.title}
-                                        </h3>
+                                <div className="flex items-start gap-3 mb-4">
+                                    <div className={`mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full ${notice.isPriority ? 'bg-indigo-500 shadow-lg shadow-indigo-200 animate-pulse' : 'bg-slate-200'}`} />
+                                    <div className="flex-grow min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                            {notice.isPriority && (
+                                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-black rounded-md uppercase tracking-wider">주요</span>
+                                            )}
+                                            <h3 className={`text-[15px] sm:text-base font-bold text-slate-800 line-clamp-2 group-hover:text-indigo-600 transition-colors`}>
+                                                {notice.title}
+                                            </h3>
+                                        </div>
+                                        <div className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
+                                            {notice.content}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                </div>
+                                <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <div className="flex flex-col gap-1 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                                         <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(notice.createdAt)}</span>
                                         <span className="flex items-center gap-1"><UserIcon size={12} /> {notice.authorName}</span>
                                     </div>
-                                </div>
-                                <div className="flex-shrink-0 flex items-center gap-1">
-                                    {currentUser && (
-                                        <div className="flex items-center gap-1 mr-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                            <button onClick={(e) => handleEdit(notice, e)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={16} /></button>
-                                            <button onClick={(e) => handleDelete(notice.id, e)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                                        </div>
-                                    )}
-                                    <ChevronRight size={18} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                                    <div className="flex-shrink-0 flex items-center gap-1">
+                                        {currentUser && (
+                                            <div className="flex items-center gap-1 mr-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => handleEdit(notice, e)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={16} /></button>
+                                                <button onClick={(e) => handleDelete(notice.id, e)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                            </div>
+                                        )}
+                                        <ChevronRight size={18} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                                    </div>
                                 </div>
                             </motion.div>
                         ))}

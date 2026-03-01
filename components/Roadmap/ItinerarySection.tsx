@@ -281,8 +281,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
         }
     };
 
-    const startEditingTripInfo = (specificTrip?: Itinerary) => {
-        const tripToEdit = specificTrip || currentTrip;
+    const startEditingTripInfo = (specificTrip?: Itinerary | React.MouseEvent) => {
+        // Prevent React.MouseEvent from being treated as specificTrip
+        const isEvent = specificTrip && 'nativeEvent' in (specificTrip as any);
+        const tripToEdit = (specificTrip && !isEvent) ? (specificTrip as Itinerary) : currentTrip;
         if (!tripToEdit) return;
         setEditTripTitle(tripToEdit.tripName);
         const formatDate = (date: any) => {
@@ -719,7 +721,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                         <ArrowLeft size={isSmartphoneMode ? 18 : 22} />
                     </button>
 
-                    <div className="flex-1 min-w-0 group cursor-pointer" onClick={startEditingTripInfo}>
+                    <div className="flex-1 min-w-0 group cursor-pointer" onClick={() => startEditingTripInfo()}>
                         <div className={`flex flex-wrap items-center ${isSmartphoneMode ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
                             <h2 className={`${isSmartphoneMode ? 'text-lg' : 'text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all`}>
                                 {currentTrip.tripName}
@@ -751,8 +753,16 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                 {/* Header Action Buttons */}
                 <div className="flex items-center gap-3 self-start lg:self-center bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50">
                     <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 group"
+                        title="새 여행 추가"
+                    >
+                        <Plus size={18} className="transition-transform group-hover:rotate-90" />
+                        <span className="text-sm hidden sm:inline whitespace-nowrap">새 일정 추가</span>
+                    </button>
+                    <button
                         onClick={() => setShowVisualMap(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md rounded-xl font-bold transition-all shadow-sm group"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md rounded-xl font-bold transition-all shadow-sm group"
                     >
                         <MapIcon size={18} className="transition-transform group-hover:rotate-12" />
                         <span className="text-sm">로드맵 보기</span>

@@ -198,21 +198,23 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ selectedTripId
                             </div>
 
                             {/* Info */}
-                            <div className="p-3 flex flex-col flex-1">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                    <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-600 font-bold uppercase tracking-wider flex-shrink-0">
-                                        {item.type}
-                                    </span>
-                                </div>
-                                <h3 className={`${isSmartphoneMode ? 'text-xs' : 'text-sm'} font-bold text-slate-800 line-clamp-2 leading-tight mb-2`} title={item.name}>
-                                    {item.name}
-                                </h3>
+                            {item.type !== 'image' && (
+                                <div className="p-3 flex flex-col flex-1">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-600 font-bold uppercase tracking-wider flex-shrink-0">
+                                            {item.type}
+                                        </span>
+                                    </div>
+                                    <h3 className={`${isSmartphoneMode ? 'text-xs' : 'text-sm'} font-bold text-slate-800 line-clamp-2 leading-tight mb-2`} title={item.name}>
+                                        {item.name}
+                                    </h3>
 
-                                <div className="mt-auto flex items-center justify-between text-[10px] text-slate-400">
-                                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
-                                    <span>{formatSize(item.size)}</span>
+                                    <div className="mt-auto flex items-center justify-between text-[10px] text-slate-400">
+                                        <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                        <span>{formatSize(item.size)}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     ))}
                 </div>
