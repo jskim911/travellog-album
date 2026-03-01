@@ -854,7 +854,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                         value={editPlaceTime}
                                                         onChange={e => setEditPlaceTime(formatTimeInput(e.target.value))}
                                                         onKeyDown={(e) => e.key === 'Enter' && handleUpdatePlace(idx)}
-                                                        className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 text-center transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                        className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 text-center transition-all duration-300 focus:scale-[1.05] focus:relative focus:z-50 focus:shadow-2xl"
                                                     />
                                                     <input
                                                         value={editPlaceMemo}
@@ -947,7 +947,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             value={newPlaceTime}
                                             onChange={e => setNewPlaceTime(formatTimeInput(e.target.value))}
                                             onKeyDown={(e) => e.key === 'Enter' && newPlaceName && handleAddPlace()}
-                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-[1.05] focus:relative focus:z-50 focus:shadow-2xl"
                                         />
                                         <input
                                             value={newPlaceMemo}

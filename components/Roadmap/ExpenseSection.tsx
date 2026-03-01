@@ -404,7 +404,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({ selectedTripId, 
                                                 </span>
                                             )}
                                         </div>
-                                        <div className={`${isCompact ? 'flex' : 'hidden md:flex'} items-center gap-0.5 ${isCompact ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                                        <div className={`flex items-center gap-0.5 ${isCompact ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                                             <button
                                                 onClick={() => handleEdit(expense)}
                                                 className={`${isCompact ? 'p-1' : 'p-1.5'} text-slate-300 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-all`}

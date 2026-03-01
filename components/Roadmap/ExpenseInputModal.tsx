@@ -31,22 +31,33 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
         if (isOpen && expenseToEdit) {
             setDate(new Date(expenseToEdit.date).toISOString().split('T')[0]);
             setDescription(expenseToEdit.description);
-            setAmount(expenseToEdit.amount.toString());
             setCurrency(expenseToEdit.currency as Currency);
             setCategory(expenseToEdit.category);
-            setExchangeRate(expenseToEdit.exchangeRate?.toString() || '1');
             setExistingReceiptUrl(expenseToEdit.receiptUrl || null);
+
+            setAmount(expenseToEdit.amount.toString());
+            setExchangeRate(expenseToEdit.exchangeRate?.toString() || '1');
         } else if (isOpen && !expenseToEdit) {
             setDate(new Date().toISOString().split('T')[0]);
             setDescription('');
-            setAmount('');
             setCurrency('KRW');
             setCategory('food');
-            setExchangeRate('1');
             setReceiptFile(null);
             setExistingReceiptUrl(null);
+
+            setAmount('');
+            setExchangeRate('1');
         }
-    }, [isOpen, expenseToEdit]);
+    }, [isOpen, expenseToEdit, currency]);
+
+    const calculateConvertedAmount = () => {
+        const a = parseFloat(amount.replace(/,/g, '') || '0');
+        const r = parseFloat(exchangeRate.replace(/,/g, '') || '1');
+        if (!isNaN(a) && !isNaN(r)) {
+            return Math.round(a * r).toLocaleString();
+        }
+        return '0';
+    };
 
     if (!isOpen) return null;
 
@@ -69,8 +80,10 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                 receiptUrl = await getDownloadURL(snapshot.ref);
             }
 
-            const numAmount = Number(amount);
-            const numRate = currency === 'KRW' ? 1 : Number(exchangeRate);
+            const rawAmount = amount || '0';
+            const rawRate = exchangeRate || '1';
+            const numAmount = parseFloat(rawAmount.replace(/,/g, '')) || 0;
+            const numRate = currency === 'KRW' ? 1 : (parseFloat(rawRate.replace(/,/g, '')) || 1);
 
             const expenseData = {
                 userId: user.uid,
@@ -119,8 +132,8 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
     ];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[92vh] flex flex-col">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 max-h-[85dvh] flex flex-col">
                 <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0 bg-white z-10">
@@ -180,13 +193,13 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                     <option value="THB">฿ THB</option>
                                 </select>
                                 <input
-                                    type="number"
-                                    inputMode="decimal"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
+                                    onBlur={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                                     placeholder="0"
-                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-xl text-xl font-black text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all tabular-nums"
-                                    translate="no"
+                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-xl text-xl font-black text-slate-900 placeholder-slate-300 border border-slate-200 outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-300 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl tabular-nums"
                                     required
                                 />
                             </div>
@@ -199,21 +212,20 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                                     <div className="flex-1">
                                         <label className="block text-[10px] font-black text-indigo-400 mb-1.5 uppercase tracking-widest">적용 환율 (1 {currency}당 KRW)</label>
                                         <input
-                                            type="number"
-                                            inputMode="decimal"
+                                            type="text"
+                                            inputMode="numeric"
                                             value={exchangeRate}
                                             onChange={(e) => setExchangeRate(e.target.value)}
-                                            step="any"
-                                            className="w-full px-3 py-2 bg-white rounded-lg text-sm font-bold text-slate-900 border border-indigo-100 outline-none focus:ring-2 focus:ring-indigo-200 transition-all tabular-nums"
+                                            onBlur={(e) => setExchangeRate(e.target.value.replace(/[^0-9.]/g, ''))}
+                                            className="w-full px-3 py-2 bg-white rounded-lg text-sm font-bold text-slate-900 border border-indigo-100 outline-none focus:ring-2 focus:ring-indigo-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl tabular-nums"
                                             placeholder="환율 입력"
-                                            translate="no"
                                             required={currency !== 'KRW'}
                                         />
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase tracking-widest">원화 환산 금액</p>
-                                        <p className="text-lg font-black text-indigo-600 tabular-nums" translate="no">
-                                            ₩ {Math.round(Number(amount || 0) * Number(exchangeRate || 0)).toLocaleString()}
+                                        <p className="text-lg font-black text-indigo-600 tabular-nums">
+                                            ₩ {calculateConvertedAmount()}
                                         </p>
                                     </div>
                                 </div>
@@ -269,7 +281,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
                     </div>
 
                     {/* Sticky Footer */}
-                    <div className="p-5 border-t border-slate-100 bg-white flex-shrink-0 pb-7 sm:pb-5">
+                    <div className="p-5 border-t border-slate-100 bg-white flex-shrink-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-5">
                         <button
                             type="submit"
                             disabled={isSubmitting}
