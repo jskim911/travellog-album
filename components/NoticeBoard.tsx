@@ -189,7 +189,7 @@ export const NoticeBoard: React.FC<NoticeBoardProps> = ({
                                 </div>
                                 <div className="flex-shrink-0 flex items-center gap-1">
                                     {currentUser && (
-                                        <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-1 mr-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                             <button onClick={(e) => handleEdit(notice, e)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={16} /></button>
                                             <button onClick={(e) => handleDelete(notice.id, e)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16} /></button>
                                         </div>
