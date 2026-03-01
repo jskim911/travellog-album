@@ -26,6 +26,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     const { user, loading: authLoading } = useAuth();
     const [allTrips, setAllTrips] = useState<Itinerary[]>([]);
     const [loading, setLoading] = useState(true);
+    const [headerActionsEl, setHeaderActionsEl] = useState<HTMLDivElement | null>(null);
 
     // Fetch All Itineraries & Auto-select Logic
     useEffect(() => {
@@ -56,11 +57,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 trips.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
                 setAllTrips(trips);
 
-                // Auto-select logic: if no trip is selected, or if the selectedTripId is invalid for this user
-                if (trips.length > 0) {
+                // Auto-clear logic: if the selectedTripId is invalid for this user
+                if (selectedTripId && trips.length > 0) {
                     const isIdValid = trips.some(t => t.id === selectedTripId);
-                    if (!selectedTripId || !isIdValid) {
-                        onSelectTrip(trips[0].id);
+                    if (!isIdValid) {
+                        onSelectTrip(null);
                     }
                 }
             } else {
@@ -81,27 +82,31 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     return (
         <div className={`max-w-6xl mx-auto px-4 py-8 ${isSmartphoneMode ? 'pb-24' : ''}`}>
             {/* Header */}
-            <div className="mb-6 flex items-center gap-4">
-                {onBack && (
-                    <button
-                        onClick={onBack}
-                        className="p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-2xl transition-all shadow-sm group"
-                        title="갤러리로 돌아가기"
-                    >
-                        <ArrowLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
-                    </button>
-                )}
-                <div>
-                    <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-1 flex items-center gap-2">
-                        <Map className="text-violet-600 w-6 h-6 sm:w-8 sm:h-8" />
-                        여행계획
-                    </h1>
-                    <p className="text-xs text-slate-500">여행 일정과 경비를 스마트하게 관리하세요.</p>
+            <div className={`mb-6 flex ${isSmartphoneMode ? 'items-start' : 'items-center'} justify-between gap-2 sm:gap-4`}>
+                <div className="flex items-center gap-2 sm:gap-4">
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className={`p-2 sm:p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-xl sm:rounded-2xl transition-all shadow-sm group shrink-0 ${isSmartphoneMode ? 'mt-1' : ''}`}
+                            title="갤러리로 돌아가기"
+                        >
+                            <ArrowLeft size={isSmartphoneMode ? 18 : 20} className="group-hover:-translate-x-0.5 transition-transform" />
+                        </button>
+                    )}
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-black text-slate-900 mb-0.5 sm:mb-1 flex items-center gap-1.5 sm:gap-2">
+                            <Map className="text-violet-600 w-5 h-5 sm:w-8 sm:h-8 shrink-0" />
+                            <span className="truncate">여행계획</span>
+                        </h1>
+                        <p className="text-[10px] sm:text-xs text-slate-500 truncate">여행 일정과 경비를 스마트하게 관리하세요.</p>
+                    </div>
                 </div>
+                {/* Actions Portal Target */}
+                <div ref={setHeaderActionsEl} className="flex-shrink-0 flex items-center justify-end" />
             </div>
 
             {/* Content Area */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm min-h-[600px] p-6 sm:p-8">
+            <div className={`bg-white rounded-3xl border border-slate-200 shadow-sm min-h-[600px] ${isSmartphoneMode ? 'p-4 sm:p-6' : 'p-6 sm:p-8'}`}>
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
@@ -116,6 +121,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                                 isSmartphoneMode={isSmartphoneMode}
                                 allTrips={allTrips}
                                 onBack={onBack}
+                                headerActionsEl={headerActionsEl}
                             />
                         ) : activeTab === 'expenses' ? (
                             <ExpenseSection

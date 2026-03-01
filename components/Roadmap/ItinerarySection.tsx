@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Calendar as CalendarIcon, Clock, ChevronRight, MoreHorizontal, Trash2, PenTool, Map as MapIcon, ArrowLeft, LayoutList, Edit2, Save, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { PenTool, MapIcon, Calendar as CalendarIcon, Clock, Plus, PenSquare, Share2, Download, Search, MapPin, X, Trash2, Link, Image as ImageIcon, CheckCircle, ChevronRight, Share, MoreHorizontal, FileText, Check, Copy, LayoutList, Navigation, RefreshCw, Send, ArrowLeft, Edit2 } from 'lucide-react';
 import { collection, query, where, orderBy, limit, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -13,9 +14,10 @@ interface ItinerarySectionProps {
     allTrips: Itinerary[];
     selectedTrip: Itinerary | null;
     onBack?: () => void;
+    headerActionsEl?: HTMLElement | null;
 }
 
-export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip, isSmartphoneMode = false, allTrips = [], selectedTrip, onBack }) => {
+export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTripId, onSelectTrip, isSmartphoneMode = false, allTrips = [], selectedTrip, onBack, headerActionsEl }) => {
     const { user } = useAuth();
 
 
@@ -423,17 +425,9 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
     // VIEW: CREATE MODE
     if (viewMode === 'create') {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in-95">
-                <div className="w-20 h-20 bg-violet-100 rounded-full flex items-center justify-center text-violet-500 mb-6">
-                    <CalendarIcon size={40} />
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2">새로운 여행 계획하기</h2>
-                <p className="text-slate-500 mb-8 max-w-sm">
-                    언제 어디로 떠나시나요? 날짜별로 상세한 일정을 정리해보세요.
-                </p>
-
-                <form onSubmit={handleCreateTrip} className="w-full max-w-md bg-white p-6 rounded-2xl border border-slate-200 shadow-xl text-left">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4">여행 기본 정보</h3>
+            <div className="animate-in fade-in zoom-in-95 w-full">
+                <form onSubmit={handleCreateTrip} className="w-full sm:max-w-2xl mx-auto sm:bg-white sm:p-8 sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-xl text-left">
+                    <h3 className="text-xl font-black text-slate-800 mb-6">여행 기본 정보</h3>
                     <div className="space-y-4">
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1">여행 제목</label>
@@ -443,11 +437,11 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 value={newTripTitle}
                                 onChange={e => setNewTripTitle(e.target.value)}
                                 placeholder="예: 겨울 제주도 힐링 여행"
-                                className="w-full p-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-violet-200 font-bold transition-all duration-300 focus:scale-110 focus:relative focus:z-50 focus:shadow-2xl"
+                                className="w-full p-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-violet-200 font-bold transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                             />
                         </div>
-                        <div className="flex gap-3">
-                            <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-3">
+                            <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-slate-500 mb-1">시작일</label>
                                 <div className="flex gap-1 items-center bg-slate-50 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
                                     <input
@@ -456,7 +450,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={4}
                                         value={newTripStartDate.split('-')[0] || ''}
                                         onChange={e => handleDatePartChange('start', 'year', e.target.value.replace(/\D/g, ''))}
-                                        className="w-12 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-12 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                     <span className="text-slate-300">.</span>
                                     <input
@@ -465,7 +459,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={2}
                                         value={newTripStartDate.split('-')[1] || ''}
                                         onChange={e => handleDatePartChange('start', 'month', e.target.value.replace(/\D/g, ''))}
-                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                     <span className="text-slate-300">.</span>
                                     <input
@@ -474,7 +468,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={2}
                                         value={newTripStartDate.split('-')[2] || ''}
                                         onChange={e => handleDatePartChange('start', 'day', e.target.value.replace(/\D/g, ''))}
-                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                 </div>
                             </div>
@@ -487,7 +481,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={4}
                                         value={newTripEndDate.split('-')[0] || ''}
                                         onChange={e => handleDatePartChange('end', 'year', e.target.value.replace(/\D/g, ''))}
-                                        className="w-12 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-12 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                     <span className="text-slate-300">.</span>
                                     <input
@@ -496,7 +490,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={2}
                                         value={newTripEndDate.split('-')[1] || ''}
                                         onChange={e => handleDatePartChange('end', 'month', e.target.value.replace(/\D/g, ''))}
-                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                     <span className="text-slate-300">.</span>
                                     <input
@@ -505,7 +499,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         maxLength={2}
                                         value={newTripEndDate.split('-')[2] || ''}
                                         onChange={e => handleDatePartChange('end', 'day', e.target.value.replace(/\D/g, ''))}
-                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-8 bg-transparent border-none p-1 text-center text-sm font-bold focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                 </div>
                             </div>
@@ -540,7 +534,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                 </h4>
                                 <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
                                     {draftRoutes.map((route, rIdx) => (
-                                        <div key={route.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div key={route.id} className="p-3 sm:p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <span className="w-6 h-6 bg-violet-600 text-white text-[10px] font-black rounded-lg flex items-center justify-center">
                                                     {route.day}
@@ -551,8 +545,8 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             </div>
                                             <div className="space-y-3">
                                                 {route.visitedPlaces.map((place, pIdx) => (
-                                                    <div key={pIdx} className="grid grid-cols-12 gap-2">
-                                                        <div className="col-span-3">
+                                                    <div key={pIdx} className="grid grid-cols-12 gap-1.5 sm:gap-2">
+                                                        <div className="col-span-4 sm:col-span-3">
                                                             <input
                                                                 placeholder="14:30"
                                                                 value={place.visitTime || ''}
@@ -561,10 +555,10 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                                     newRoutes[rIdx].visitedPlaces[pIdx].visitTime = formatTimeInput(e.target.value);
                                                                     setDraftRoutes(newRoutes);
                                                                 }}
-                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                             />
                                                         </div>
-                                                        <div className="col-span-4">
+                                                        <div className="col-span-8 sm:col-span-4">
                                                             <input
                                                                 placeholder="장소명"
                                                                 value={place.name}
@@ -573,7 +567,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                                     newRoutes[rIdx].visitedPlaces[pIdx].name = e.target.value;
                                                                     setDraftRoutes(newRoutes);
                                                                 }}
-                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                             />
                                                         </div>
                                                         <div className="col-span-12 sm:col-span-5">
@@ -585,7 +579,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                                     newRoutes[rIdx].visitedPlaces[pIdx].address = e.target.value;
                                                                     setDraftRoutes(newRoutes);
                                                                 }}
-                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                                className="w-full p-2 bg-white rounded-lg border-none text-[10px] font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                             />
                                                         </div>
                                                     </div>
@@ -645,7 +639,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                         className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-full shadow-lg transition-all"
                     >
                         <Plus size={20} />
-                        새 여행 만들기
+                        새 여행 추가
                     </button>
                 </div>
 
@@ -722,16 +716,16 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                     </button>
 
                     <div className="flex-1 min-w-0 group cursor-pointer" onClick={() => startEditingTripInfo()}>
-                        <div className={`flex flex-wrap items-center ${isSmartphoneMode ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
-                            <h2 className={`${isSmartphoneMode ? 'text-lg' : 'text-4xl'} font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all`}>
+                        <div className="flex flex-wrap items-center gap-2 lg:gap-3 mb-1 lg:mb-2">
+                            <h2 className="text-xl md:text-2xl lg:text-4xl font-extrabold text-slate-900 tracking-tight transition-colors group-hover:text-violet-600 break-all">
                                 {currentTrip.tripName}
                             </h2>
-                            <span className={`${isSmartphoneMode ? 'p-1' : 'p-1.5'} bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1`}>
+                            <span className="p-1 lg:p-1.5 bg-slate-50 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
                                 <Edit2 size={isSmartphoneMode ? 14 : 18} />
                             </span>
                         </div>
-                        <div className={`flex flex-wrap items-center ${isSmartphoneMode ? 'gap-x-2 gap-y-1 text-[10px]' : 'gap-x-4 gap-y-2 text-sm sm:text-base'} text-slate-500 font-medium`}>
-                            <div className={`flex items-center ${isSmartphoneMode ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-3 py-1'} bg-slate-50 rounded-full border border-slate-100`}>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 lg:gap-x-4 lg:gap-y-2 text-[10px] sm:text-xs lg:text-base text-slate-500 font-medium">
+                            <div className="flex items-center gap-1 lg:gap-1.5 px-2 lg:px-3 py-0.5 lg:py-1 bg-slate-50 rounded-full border border-slate-100">
                                 <CalendarIcon size={isSmartphoneMode ? 10 : 14} className="text-violet-400" />
                                 <span>{new Date(currentTrip.startDate).toLocaleDateString()} - {new Date(currentTrip.endDate).toLocaleDateString()}</span>
                             </div>
@@ -750,65 +744,86 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                     </div>
                 </div>
 
-                {/* Header Action Buttons */}
-                <div className="flex items-center gap-3 self-start lg:self-center bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50">
-                    <button
-                        onClick={() => setIsCreating(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 group"
-                        title="새 여행 추가"
-                    >
-                        <Plus size={18} className="transition-transform group-hover:rotate-90" />
-                        <span className="text-sm hidden sm:inline whitespace-nowrap">새 일정 추가</span>
-                    </button>
-                    <button
-                        onClick={() => setShowVisualMap(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md rounded-xl font-bold transition-all shadow-sm group"
-                    >
-                        <MapIcon size={18} className="transition-transform group-hover:rotate-12" />
-                        <span className="text-sm">로드맵 보기</span>
-                    </button>
-                    <div className="w-px h-6 bg-slate-200 mx-1" />
-                    <button
-                        onClick={() => handleDeleteTrip(currentTrip)}
-                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:rotate-12"
-                        title="이 여행 삭제"
-                    >
-                        <Trash2 size={22} />
-                    </button>
-                </div>
+                {/* Header Action Buttons via Portal or Inline */}
+                {(() => {
+                    const newTripButton = (
+                        <button
+                            onClick={() => setIsCreating(true)}
+                            className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-2.5 py-2 text-[11px] sm:text-xs rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-violet-600 hover:bg-violet-700 text-white font-bold transition-all shadow-md active:scale-95 group`}
+                            title="여행 추가"
+                        >
+                            <Plus size={isSmartphoneMode ? 14 : 18} className="transition-transform group-hover:rotate-90" />
+                            <span className="whitespace-nowrap">여행 추가</span>
+                        </button>
+                    );
+
+                    const otherButtonsContainer = (
+                        <div className={`flex items-center ${isSmartphoneMode ? 'gap-1.5 w-full overflow-x-auto scrollbar-hide pb-1' : 'gap-3 self-start lg:self-center'} bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100/50`}>
+                            {(!isSmartphoneMode || !headerActionsEl) && newTripButton}
+                            <button
+                                onClick={() => setShowVisualMap(true)}
+                                className={`flex items-center justify-center shrink-0 ${isSmartphoneMode ? 'gap-1 px-2.5 py-2 text-[10px] sm:text-[11px] rounded-lg' : 'gap-2 px-4 py-2.5 text-sm rounded-xl'} bg-white border border-slate-200 text-slate-700 hover:text-violet-600 hover:border-violet-200 hover:shadow-md font-bold transition-all shadow-sm group`}
+                            >
+                                <MapIcon size={isSmartphoneMode ? 14 : 18} className="transition-transform group-hover:rotate-12" />
+                                <span className="whitespace-nowrap">로드맵 보기</span>
+                            </button>
+                            <div className="w-px h-5 sm:h-6 bg-slate-200 mx-0.5 shrink-0" />
+                            <button
+                                onClick={() => handleDeleteTrip(currentTrip)}
+                                className={`shrink-0 ${isSmartphoneMode ? 'p-1.5 rounded-lg' : 'p-2.5 rounded-xl'} text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all hover:rotate-12`}
+                                title="이 여행 삭제"
+                            >
+                                <Trash2 size={isSmartphoneMode ? 16 : 22} />
+                            </button>
+                        </div>
+                    );
+
+                    if (isSmartphoneMode && headerActionsEl) {
+                        return (
+                            <>
+                                {createPortal(newTripButton, headerActionsEl)}
+                                {otherButtonsContainer}
+                            </>
+                        );
+                    }
+                    return otherButtonsContainer;
+                })()}
             </div>
 
             <div className={`flex flex-col ${isSmartphoneMode ? 'gap-6' : 'lg:flex-row gap-10'} items-start`}>
                 {/* Left: Day Selector (Sidebar Style) */}
-                <div className={`${isSmartphoneMode ? 'w-full' : 'lg:w-[18rem]'} flex-shrink-0 sticky top-4`}>
-                    <div className={`flex ${isSmartphoneMode ? 'overflow-x-auto gap-2.5 pb-2' : 'lg:flex-col gap-3 pb-0'} scrollbar-hide`}>
+                <div className="w-full lg:w-[18rem] flex-shrink-0 sticky top-4">
+                    <div className="flex overflow-x-auto lg:overflow-visible lg:flex-col gap-2.5 lg:gap-3 pb-2 lg:pb-0 scrollbar-hide">
                         {currentTrip.routes.map((route, index) => (
                             <button
                                 key={route.id}
                                 onClick={() => setSelectedDayIndex(index)}
                                 className={`
-                  flex-shrink-0 flex items-center justify-between transition-all text-left rounded-[1.25rem] border group
-                  ${isSmartphoneMode ? 'px-3 py-2.5' : 'px-5 py-4'}
+                  flex-shrink-0 flex items-center justify-between transition-all text-left rounded-xl lg:rounded-[1.25rem] border group
+                  px-3 lg:px-5 py-2 lg:py-4
                   ${selectedDayDayIndex === index
                                         ? 'bg-violet-600 border-violet-600 text-white shadow-xl shadow-violet-200 scale-[1.02]'
                                         : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-100 hover:border-slate-200'
                                     }
                 `}
                             >
-                                <div className={`flex flex-col ${isSmartphoneMode ? 'gap-0' : 'gap-0.5'} min-w-0`}>
-                                    <span className={`${isSmartphoneMode ? 'text-[9px]' : 'text-[11px]'} font-black uppercase tracking-wider ${isSmartphoneMode ? '' : 'mb-0.5'} ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
+                                <div className="flex flex-col gap-0 lg:gap-0.5 min-w-0">
+                                    <span className={`text-[10px] lg:text-[11px] font-black uppercase tracking-wider hidden lg:block lg:mb-0.5 ${selectedDayDayIndex === index ? 'text-violet-200' : 'text-slate-400'}`}>
                                         Day {index + 1}
                                     </span>
-                                    <div className={`flex items-center ${isSmartphoneMode ? 'gap-1' : 'gap-1.5'} overflow-hidden`}>
-                                        <span className={`font-black ${isSmartphoneMode ? 'text-sm' : 'text-base'} truncate ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
+                                    <div className="flex items-baseline gap-1 lg:gap-1.5 overflow-hidden">
+                                        <span className={`text-[13px] lg:hidden font-black uppercase tracking-wider ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
+                                            D-{index + 1}
+                                        </span>
+                                        <span className={`hidden lg:inline-block font-bold text-base lg:font-black truncate ${selectedDayDayIndex === index ? 'text-white' : 'text-slate-800'}`}>
                                             {getDayShortDate(index)}
                                         </span>
-                                        <span className={`${isSmartphoneMode ? 'text-[10px]' : 'text-xs'} font-bold whitespace-nowrap opacity-60`}>
+                                        <span className={`hidden lg:inline-block text-xs font-bold whitespace-nowrap ${selectedDayDayIndex === index ? 'text-violet-100' : 'text-slate-400 opacity-80'}`}>
                                             ({getDayOnlyDay(index)})
                                         </span>
                                     </div>
                                 </div>
-                                {!isSmartphoneMode && <ChevronRight size={18} className={`transition-transform duration-300 ${selectedDayDayIndex === index ? 'translate-x-1 opacity-100' : 'opacity-0 -translate-x-2'}`} />}
+                                <ChevronRight size={18} className={`hidden lg:block transition-transform duration-300 ${selectedDayDayIndex === index ? 'translate-x-1 opacity-100' : 'opacity-0 -translate-x-2'}`} />
                             </button>
                         ))}
                     </div>
@@ -816,21 +831,21 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
 
                 {/* Right: Timeline Content (Main Body) */}
                 <div className={`flex-1 w-full bg-slate-50/50 rounded-[2.5rem] border border-slate-100 shadow-inner ${isSmartphoneMode ? 'p-3.5 min-h-[400px]' : 'p-6 sm:p-10 min-h-[600px]'}`}>
-                    <div className={`flex items-center justify-between ${isSmartphoneMode ? 'mb-4' : 'mb-6'}`}>
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span className={`px-2 py-0.5 bg-violet-100 text-violet-700 ${isSmartphoneMode ? 'text-[10px]' : 'text-xs'} rounded-lg`}>
+                    <div className="flex items-center justify-between mb-4 lg:mb-6">
+                        <h3 className="text-base lg:text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] lg:text-xs rounded-lg">
                                 Day {selectedDayDayIndex + 1} ({getDayShortDate(selectedDayDayIndex)})
                             </span>
-                            <span className={`${isSmartphoneMode ? 'text-[11px]' : 'text-xs sm:text-base'} text-slate-500 font-normal`}>
+                            <span className="text-[11px] lg:text-sm text-slate-500 font-normal">
                                 {getDayDate(selectedDayDayIndex)}
                             </span>
                         </h3>
                         <button
                             onClick={() => setIsAddingPlace(true)}
-                            className="px-4 py-2 bg-white border border-slate-200 hover:border-violet-300 text-slate-700 hover:text-violet-700 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-2"
+                            className="px-3 py-1.5 lg:px-4 lg:py-2 bg-white border border-slate-200 hover:border-violet-300 text-slate-700 hover:text-violet-700 rounded-lg lg:rounded-xl text-xs lg:text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 lg:gap-2"
                         >
-                            <Plus size={16} />
-                            {isSmartphoneMode ? '추가' : '일정 추가'}
+                            <Plus size={isSmartphoneMode ? 14 : 16} />
+                            <span className="whitespace-nowrap">{isSmartphoneMode ? '추가' : '일정 추가'}</span>
                         </button>
                     </div>
 
@@ -856,7 +871,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                     onChange={e => setEditPlaceName(e.target.value)}
                                                     onKeyDown={(e) => e.key === 'Enter' && handleUpdatePlace(idx)}
                                                     placeholder="장소명"
-                                                    className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                    className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                 />
                                                 <div className="flex gap-2">
                                                     <input
@@ -864,14 +879,14 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                         value={editPlaceTime}
                                                         onChange={e => setEditPlaceTime(formatTimeInput(e.target.value))}
                                                         onKeyDown={(e) => e.key === 'Enter' && handleUpdatePlace(idx)}
-                                                        className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 text-center transition-all duration-300 focus:scale-[1.05] focus:relative focus:z-50 focus:shadow-2xl"
+                                                        className="flex-1 px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-amber-200 text-center transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                     />
                                                     <input
                                                         value={editPlaceMemo}
                                                         onChange={e => setEditPlaceMemo(e.target.value)}
                                                         onKeyDown={(e) => e.key === 'Enter' && handleUpdatePlace(idx)}
                                                         placeholder="메모 (선택)"
-                                                        className="flex-[2] px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-amber-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                                        className="flex-[2] px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-amber-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                                     />
                                                 </div>
                                                 <div className="flex justify-end gap-2 mt-2">
@@ -949,7 +964,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                         onChange={e => setNewPlaceName(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && newPlaceName && handleAddPlace()}
                                         placeholder="장소명 (예: 에펠탑)"
-                                        className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                        className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                     />
                                     <div className="flex flex-col gap-2">
                                         <input
@@ -957,14 +972,14 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                             value={newPlaceTime}
                                             onChange={e => setNewPlaceTime(formatTimeInput(e.target.value))}
                                             onKeyDown={(e) => e.key === 'Enter' && newPlaceName && handleAddPlace()}
-                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-[1.05] focus:relative focus:z-50 focus:shadow-2xl"
+                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm font-bold focus:ring-2 focus:ring-violet-200 text-center transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                         />
                                         <input
                                             value={newPlaceMemo}
                                             onChange={e => setNewPlaceMemo(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && newPlaceName && handleAddPlace()}
                                             placeholder="메모 (선택)"
-                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-130 focus:relative focus:z-50 focus:shadow-2xl"
+                                            className="w-full px-3 py-2 bg-slate-50 rounded-lg border-none text-sm focus:ring-2 focus:ring-violet-200 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-50 focus:shadow-2xl"
                                         />
                                     </div>
                                     <div className="flex justify-end gap-2 mt-2">
@@ -1032,8 +1047,8 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="w-full">
                                         <label className="block text-sm font-black text-slate-700 mb-2 ml-1">시작일</label>
                                         <div className="flex gap-1 items-center bg-slate-50 rounded-2xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
                                             <input
@@ -1043,7 +1058,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripStart.split('-')[0] || ''}
                                                 onChange={e => handleDatePartChange('start', 'year', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-12 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-12 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                             <span className="text-slate-300">.</span>
                                             <input
@@ -1053,7 +1068,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripStart.split('-')[1] || ''}
                                                 onChange={e => handleDatePartChange('start', 'month', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                             <span className="text-slate-300">.</span>
                                             <input
@@ -1063,11 +1078,11 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripStart.split('-')[2] || ''}
                                                 onChange={e => handleDatePartChange('start', 'day', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                         </div>
                                     </div>
-                                    <div>
+                                    <div className="w-full">
                                         <label className="block text-sm font-black text-slate-700 mb-2 ml-1">종료일</label>
                                         <div className="flex gap-1 items-center bg-slate-50 rounded-2xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
                                             <input
@@ -1077,7 +1092,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripEnd.split('-')[0] || ''}
                                                 onChange={e => handleDatePartChange('end', 'year', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-12 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-12 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                             <span className="text-slate-300">.</span>
                                             <input
@@ -1087,7 +1102,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripEnd.split('-')[1] || ''}
                                                 onChange={e => handleDatePartChange('end', 'month', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                             <span className="text-slate-300">.</span>
                                             <input
@@ -1097,7 +1112,7 @@ export const ItinerarySection: React.FC<ItinerarySectionProps> = ({ selectedTrip
                                                 value={editTripEnd.split('-')[2] || ''}
                                                 onChange={e => handleDatePartChange('end', 'day', e.target.value.replace(/\D/g, ''), true)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateTripInfo()}
-                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-125 focus:relative focus:z-10"
+                                                className="w-8 bg-transparent border-none p-0 text-center text-base font-black text-slate-800 focus:ring-0 transition-all duration-300 focus:scale-[1.02] focus:relative focus:z-10"
                                             />
                                         </div>
                                     </div>
