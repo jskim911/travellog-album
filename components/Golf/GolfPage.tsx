@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Plus, Calendar, MapPin, Users, ChevronRight,
     Trophy, Settings2, Trash2, ArrowLeft,
-    Grid3x3, Save, X, Minus, PlusCircle, Camera, Files, Copy, ImagePlus
+    Grid3x3, Save, X, Minus, PlusCircle, Camera, Files, Copy, ImagePlus,
+    Image as ImageIcon, Map, FileDown
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { GolfScore } from '../../types';
@@ -21,6 +24,19 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
     const [selectedScore, setSelectedScore] = useState<GolfScore | null>(null);
     const [copySourceData, setCopySourceData] = useState<Partial<GolfScore> | null>(null);
     const [viewerImage, setViewerImage] = useState<string | null>(null);
+    const [isHoleInfoOpen, setIsHoleInfoOpen] = useState(false);
+    const [globalHoleInfo, setGlobalHoleInfo] = useState<string[]>([]);
+
+    // 전역 홀정보 (코스 자료) 구독
+    useEffect(() => {
+        if (!userId) return;
+        const unsub = onSnapshot(doc(db, 'users', userId, 'golf', 'global'), (docSnap) => {
+            if (docSnap.exists()) {
+                setGlobalHoleInfo(docSnap.data().holeInfoUrls || []);
+            }
+        });
+        return () => unsub();
+    }, [userId]);
 
     // Firestore 데이터 구독
     useEffect(() => {
@@ -35,6 +51,15 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
                 const dateA = new Date(a.date).getTime();
                 const dateB = new Date(b.date).getTime();
                 if (dateA !== dateB) return dateA - dateB;
+
+                // Priority: '오전' (Morning) should come before '오후' (Afternoon)
+                const isAM_A = a.courseName.includes('오전');
+                const isPM_A = a.courseName.includes('오후');
+                const isAM_B = b.courseName.includes('오전');
+                const isPM_B = b.courseName.includes('오후');
+
+                if (isAM_A && isPM_B) return -1;
+                if (isPM_A && isAM_B) return 1;
 
                 // Secondary sort: oldest creation first if dates are same
                 const timeA = a.createdAt?.seconds || 0;
@@ -52,7 +77,8 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
             courseName: score.courseName,
             participants: score.participants,
             holePars: score.holePars,
-            courseImageUrl: score.courseImageUrl
+            courseImageUrl: score.courseImageUrl,
+            holeInfoUrls: score.holeInfoUrls || []
         });
         setView('setup');
     };
@@ -93,6 +119,7 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
         return (
             <ScorecardView
                 scoreData={selectedScore}
+                globalHoleInfo={globalHoleInfo}
                 onBack={() => {
                     setView('list');
                     setSelectedScore(null);
@@ -109,6 +136,63 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
             {viewerImage && (
                 <ImageViewer url={viewerImage} onClose={() => setViewerImage(null)} />
             )}
+
+            {/* Hole Info Modal (Global Manager) */}
+            {isHoleInfoOpen && (
+                <HoleInfoModal
+                    isEditMode
+                    urls={globalHoleInfo}
+                    onClose={() => setIsHoleInfoOpen(false)}
+                    onShowImage={(url) => {
+                        setViewerImage(url);
+                        setIsHoleInfoOpen(false);
+                    }}
+                    onUpload={async (file) => {
+                        try {
+                            const storageRef = ref(storage, `golf_global/${userId}/${Date.now()}_${file.name}`);
+                            const snapshot = await uploadBytes(storageRef, file);
+                            const url = await getDownloadURL(snapshot.ref);
+                            const nextUrls = [...globalHoleInfo, url];
+                            await setDoc(doc(db, 'users', userId, 'golf', 'global'), {
+                                holeInfoUrls: nextUrls
+                            }, { merge: true });
+                        } catch (error) {
+                            console.error('Global hole upload error:', error);
+                            alert('이미지 업로드 중 오류가 발생했습니다.');
+                        }
+                    }}
+                    onDelete={async (url) => {
+                        const nextUrls = globalHoleInfo.filter(u => u !== url);
+                        await updateDoc(doc(db, 'users', userId, 'golf', 'global'), {
+                            holeInfoUrls: nextUrls
+                        });
+                    }}
+                />
+            )}
+
+            {/* Header Section */}
+            <div className={`flex items-center justify-between mb-8 pb-4 border-b border-slate-100 ${isSmartphoneMode ? 'px-4' : ''}`}>
+                <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-8 bg-emerald-500 rounded-full" />
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">스코어카드</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsHoleInfoOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-200 transition-all active:scale-95"
+                    >
+                        <ImageIcon size={18} className="text-emerald-500" />
+                        <span>홀정보</span>
+                    </button>
+                    <button
+                        onClick={() => setView('setup')}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-black rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                    >
+                        <Plus size={18} />
+                        <span>추가</span>
+                    </button>
+                </div>
+            </div>
 
             {loading ? (
                 <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${isSmartphoneMode ? 'px-4' : ''}`}>
@@ -140,50 +224,21 @@ export const GolfPage: React.FC<GolfPageProps> = ({ userId, isSmartphoneMode }) 
                             }}
                             className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all cursor-pointer group relative"
                         >
-                            <div className="flex gap-3 items-center">
-                                <div
-                                    onClick={(e) => {
-                                        if (score.courseImageUrl) {
-                                            e.stopPropagation();
-                                            setViewerImage(score.courseImageUrl);
-                                        }
-                                    }}
-                                    className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center text-slate-300 hover:border-emerald-300 transition-all active:scale-95"
-                                >
-                                    {score.courseImageUrl ? (
-                                        <img src={score.courseImageUrl} alt={score.courseName} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Camera size={20} />
-                                    )}
-                                </div>
+                            <div className="flex gap-4 items-center">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-1">
                                         <h3 className="text-base font-black text-slate-800 truncate pr-2 leading-tight">{score.courseName}</h3>
-                                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={(e) => handleEdit(score, e)}
-                                                className="p-1 text-slate-300 hover:text-indigo-500"
-                                                title="이미지 재업로드"
-                                            >
-                                                <ImagePlus size={16} />
-                                            </button>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={(e) => handleCopy(score, e)}
-                                                className="p-1 text-slate-300 hover:text-emerald-500"
-                                                title="복사하여 만들기"
+                                                className="p-1.5 text-slate-300 hover:text-emerald-500 bg-slate-50 hover:bg-emerald-50 rounded-lg transition-all"
+                                                title="복사"
                                             >
                                                 <Copy size={16} />
                                             </button>
                                             <button
-                                                onClick={(e) => handleEdit(score, e)}
-                                                className="p-1 text-slate-300 hover:text-blue-500"
-                                                title="상세 수정"
-                                            >
-                                                <Settings2 size={16} />
-                                            </button>
-                                            <button
                                                 onClick={(e) => handleDelete(score.id, e)}
-                                                className="p-1 text-slate-300 hover:text-red-500"
+                                                className="p-1.5 text-slate-300 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-lg transition-all"
                                                 title="삭제"
                                             >
                                                 <Trash2 size={16} />
@@ -226,30 +281,9 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
     const [courseName, setCourseName] = useState(initialData?.courseName || '');
     const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
     const [participants, setParticipants] = useState<string[]>(initialData?.participants || ['']);
-    const [holePars, setHolePars] = useState<number[]>(initialData?.holePars || new Array(18).fill(4));
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string>(initialData?.courseImageUrl || '');
+    const [viewerImage, setViewerImage] = useState<string | null>(null);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
-    };
-
-    const uploadImage = async (): Promise<string | undefined> => {
-        if (!imageFile) return initialData?.courseImageUrl;
-        try {
-            const storageRef = ref(storage, `golf_courses/${userId}/${Date.now()}_${imageFile.name}`);
-            const snapshot = await uploadBytes(storageRef, imageFile);
-            return await getDownloadURL(snapshot.ref);
-        } catch (error) {
-            console.error('Image upload error:', error);
-            return undefined;
-        }
-    };
 
     const handleAddParticipant = () => {
         if (participants.length >= 8) return;
@@ -276,15 +310,15 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
 
         setIsSubmitting(true);
         try {
-            const imageUrl = await uploadImage();
+            // 기본 파(Par) 정보 생성 (Par 4 x 18홀)
+            const defaultHolePars = new Array(18).fill(4);
 
             const initialScores: { [key: number]: number[] } = {};
             participants.forEach((_, idx) => {
-                // 수정 모드이고 기존 참가자라면 기존 점수 보존, 아니면 파(Par)로 초기화
                 if (isEditMode && initialData?.scores && initialData.scores[idx]) {
                     initialScores[idx] = initialData.scores[idx];
                 } else {
-                    initialScores[idx] = [...holePars];
+                    initialScores[idx] = [...defaultHolePars];
                 }
             });
 
@@ -292,9 +326,9 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
                 courseName,
                 date,
                 participants: participants.filter(p => p.trim()),
-                holePars,
+                holePars: defaultHolePars,
                 scores: initialScores,
-                courseImageUrl: imageUrl || '',
+                courseImageUrl: initialData?.courseImageUrl || '',
                 updatedAt: serverTimestamp()
             };
 
@@ -318,6 +352,11 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
 
     return (
         <div className={`w-full animate-in slide-in-from-bottom-4 duration-500 ${isSmartphoneMode ? 'px-0' : ''}`}>
+            {/* Image Viewer Modal */}
+            {viewerImage && (
+                <ImageViewer url={viewerImage} onClose={() => setViewerImage(null)} />
+            )}
+
             <button onClick={onBack} className={`flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-6 font-bold transition-colors ${isSmartphoneMode ? 'px-4' : ''}`}>
                 <ArrowLeft size={20} />
                 <span>돌아가기</span>
@@ -326,70 +365,28 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
             <div className={`bg-white border-slate-200 overflow-hidden ${isSmartphoneMode ? 'rounded-none border-x-0' : 'rounded-[2.5rem] border shadow-xl'}`}>
                 <form onSubmit={handleSubmit} className="p-8 space-y-8">
                     <div className="flex flex-col md:flex-row gap-8">
-                        {/* Course Image Upload */}
-                        <div className="w-full md:w-64">
-                            <label className="block text-sm font-black text-slate-700 mb-2 ml-1">골프장 정보 (코드/이미지)</label>
-                            <div className="relative group">
-                                <label className="relative flex flex-col items-center justify-center w-full h-40 md:h-64 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 cursor-pointer hover:bg-slate-100 transition-all overflow-hidden shadow-inner">
-                                    {previewUrl ? (
-                                        <>
-                                            <img src={previewUrl} alt="Course" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white gap-2 transition-colors hover:bg-black/50">
-                                                <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 shadow-lg">
-                                                    <Camera size={28} />
-                                                </div>
-                                                <span className="text-sm font-black drop-shadow-md bg-indigo-600 px-4 py-1.5 rounded-full shadow-lg">사진 변경</span>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="flex flex-col items-center text-slate-400">
-                                            <div className="bg-slate-200/50 p-4 rounded-full mb-3 shadow-inner">
-                                                <Camera size={32} />
-                                            </div>
-                                            <span className="text-xs font-black">골프장 정보 이미지 업로드</span>
-                                            <p className="text-[10px] mt-1 text-slate-300">클릭하여 파일을 선택하세요</p>
-                                        </div>
-                                    )}
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                                </label>
-
-                                {previewUrl && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            setImageFile(null);
-                                            setPreviewUrl('');
-                                        }}
-                                        className="absolute -top-3 -right-3 w-10 h-10 bg-red-500 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-red-600 active:scale-90 transition-all z-20 border-2 border-white"
-                                        title="이미지 삭제"
-                                    >
-                                        <X size={20} className="stroke-[3]" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
                         <div className="flex-1 space-y-6">
-                            <div>
-                                <label className="block text-sm font-black text-slate-700 mb-2 ml-1">골프장 이름</label>
-                                <input
-                                    required
-                                    value={courseName}
-                                    onChange={e => setCourseName(e.target.value)}
-                                    placeholder="예: 베네스트 GC"
-                                    className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-200 font-bold transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-black text-slate-700 mb-2 ml-1">라운딩 날짜</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-200 font-bold transition-all"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">골프장 이름</label>
+                                    <input
+                                        required
+                                        value={courseName}
+                                        onChange={e => setCourseName(e.target.value)}
+                                        placeholder="예: 베네스트 GC"
+                                        className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-200 font-bold transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">라운딩 날짜</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={date}
+                                        onChange={e => setDate(e.target.value)}
+                                        className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-2 focus:ring-emerald-200 font-bold transition-all"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -430,30 +427,6 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-black text-slate-700 mb-4 ml-1">18홀 파(Par) 설정 (기본값: 72타)</label>
-                        <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
-                            {holePars.map((par, idx) => (
-                                <div key={idx} className="flex flex-col items-center gap-1">
-                                    <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
-                                    <select
-                                        value={par}
-                                        onChange={e => {
-                                            const newPars = [...holePars];
-                                            newPars[idx] = parseInt(e.target.value);
-                                            setHolePars(newPars);
-                                        }}
-                                        className="w-full p-1 bg-slate-50 rounded-lg text-xs font-black border-none focus:ring-1 focus:ring-emerald-200 text-center appearance-none cursor-pointer"
-                                    >
-                                        <option value={3}>3</option>
-                                        <option value={4}>4</option>
-                                        <option value={5}>5</option>
-                                    </select>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     <button
                         type="submit"
                         disabled={isSubmitting}
@@ -467,25 +440,181 @@ const GolfSetupView: React.FC<GolfSetupViewProps> = ({ onBack, userId, isSmartph
     );
 };
 
+// --- Hole Info Modal ---
+interface HoleInfoModalProps {
+    onClose: () => void;
+    onShowImage: (url: string) => void;
+    urls?: string[];
+    isEditMode?: boolean;
+    onUpload?: (file: File) => Promise<void>;
+    onDelete?: (url: string) => void;
+}
+
+const HoleInfoModal: React.FC<HoleInfoModalProps> = ({ onClose, onShowImage, urls = [], isEditMode, onUpload, onDelete }) => {
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && onUpload) {
+            setIsUploading(true);
+            try {
+                await onUpload(file);
+            } finally {
+                setIsUploading(false);
+            }
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
+            <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500">
+                <div className="p-6 sm:p-10 max-h-[95vh] flex flex-col relative">
+                    {/* Main Title at the Top */}
+                    <div className="mb-6">
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                            코스 공략 자료를<br className="sm:hidden" /> 업로드하세요
+                        </h2>
+                    </div>
+
+                    {/* Compact Close Button */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all active:scale-95 z-10"
+                    >
+                        <X size={20} />
+                    </button>
+
+                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-8">
+                        {/* Premium Upload Card */}
+                        {isEditMode && (
+                            <div className="group relative">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-[2rem] blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
+                                <label className="relative flex flex-col items-center justify-center w-full h-24 bg-white rounded-[2rem] border border-slate-100 cursor-pointer hover:border-emerald-200 transition-all shadow-sm overflow-hidden">
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading} />
+                                    {isUploading ? (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-6 h-6 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Uploading</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-4 text-slate-400 group-hover:text-emerald-600 transition-all transform group-hover:scale-105">
+                                            <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+                                                <PlusCircle size={24} className="group-hover:rotate-90 transition-transform duration-500" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-slate-700">업로드</p>
+                                                <p className="text-[10px] font-bold text-slate-400">갤러리에 자료를 추가합니다</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </label>
+                            </div>
+                        )}
+
+                        {/* Gallery Section with Premium Header */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-1">
+                                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">정보</h4>
+                                <span className="px-2 py-0.5 bg-slate-50 text-[10px] font-black text-slate-400 rounded-lg">{urls.length}</span>
+                            </div>
+
+                            {urls.length === 0 ? (
+                                <div className="py-16 bg-slate-50/50 rounded-[2.5rem] text-center border border-slate-100 flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-4">
+                                        <ImageIcon className="text-slate-200" size={32} />
+                                    </div>
+                                    <p className="text-xs font-black text-slate-400">등록된 이미지가 없습니다</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    {urls.map((url, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="group relative aspect-video rounded-[2rem] overflow-hidden border border-slate-100 bg-slate-50 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1"
+                                        >
+                                            <img
+                                                src={url}
+                                                alt={`Hole ${idx + 1}`}
+                                                className="w-full h-full object-cover cursor-pointer transition-transform duration-1000 group-hover:scale-110"
+                                                onClick={() => onShowImage(url)}
+                                            />
+                                            <div
+                                                className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 transform scale-50 group-hover:scale-100 transition-transform duration-500">
+                                                    <ImageIcon className="text-white" size={24} />
+                                                </div>
+                                            </div>
+
+                                            {isEditMode && onDelete && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm('이 이미지를 삭제하시겠습니까?')) {
+                                                            onDelete(url);
+                                                        }
+                                                    }}
+                                                    className="absolute top-4 right-4 w-10 h-10 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl shadow-xl flex items-center justify-center hover:bg-red-500 hover:border-red-500 transition-all opacity-0 group-hover:opacity-100 z-10"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Image Viewer Modal ---
 const ImageViewer: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     return (
         <div
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in duration-300"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-10"
             onClick={onClose}
         >
+            {/* Immersive Glassmorphism Background - Fast Transition */}
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-3xl transition-opacity duration-300" />
+            <div
+                className="absolute inset-0 opacity-40"
+                style={{
+                    backgroundImage: `url(${url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: 'blur(80px) saturate(1.5)'
+                }}
+            />
+
             <button
                 onClick={onClose}
-                className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-2xl flex items-center justify-center transition-all"
+                className="absolute top-6 right-6 w-12 h-12 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl flex items-center justify-center transition-all z-50 group"
             >
                 <X size={24} />
             </button>
-            <img
-                src={url}
-                alt="Enlarged view"
-                className="max-w-full max-h-[85vh] rounded-3xl shadow-2xl object-contain"
-                onClick={(e) => e.stopPropagation()}
-            />
+
+            <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative group w-full h-full sm:w-auto sm:h-auto flex items-center justify-center">
+                    <img
+                        src={url}
+                        alt="Enlarged view"
+                        className="max-w-full max-h-full sm:max-h-[85vh] sm:rounded-[2.5rem] shadow-2xl object-contain border border-white/5 transition-transform duration-500"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+
+                    {/* Bottom Info Tip */}
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-black/40 backdrop-blur-md rounded-full border border-white/10 opacity-60 sm:group-hover:opacity-100 transition-opacity">
+                        <p className="text-[9px] font-black text-white/60 uppercase tracking-widest whitespace-nowrap">Tap to close</p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -494,14 +623,16 @@ const ImageViewer: React.FC<{ url: string; onClose: () => void }> = ({ url, onCl
 
 interface ScorecardViewProps {
     scoreData: GolfScore;
+    globalHoleInfo: string[];
     onBack: () => void;
     isSmartphoneMode: boolean;
     onShowImage: (url: string) => void;
 }
 
-const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, onBack, isSmartphoneMode, onShowImage }) => {
+const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, globalHoleInfo, onBack, isSmartphoneMode, onShowImage }) => {
     const [localScores, setLocalScores] = useState(scoreData.scores);
     const [isSaving, setIsSaving] = useState(false);
+    const scorecardRef = useRef<HTMLDivElement>(null);
 
     const handleScoreChange = (playerIdx: number, holeIdx: number, delta: number) => {
         const currentVal = localScores[playerIdx][holeIdx];
@@ -529,7 +660,6 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, onBack, isSmar
             setIsSaving(false);
         }
     };
-
     const calculateTotal = (playerIdx: number) => {
         return localScores[playerIdx].reduce((acc, s, idx) => acc + (s === 0 ? scoreData.holePars[idx] : s), 0);
     };
@@ -543,36 +673,63 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, onBack, isSmar
         return diff > 0 ? `+${diff}` : diff;
     };
 
+    const handleDownloadPDF = async () => {
+        if (!scorecardRef.current) return;
+        const element = scorecardRef.current;
+
+        try {
+            // 원본 배경색 유지를 위해 스타일 강제 적용
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#f8fafc', // slate-50 background for PDF
+                windowWidth: 1200, // 전체 내용을 담기 위한 너비
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`scorecard_${scoreData.courseName}_${scoreData.date}.pdf`);
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('PDF 생성 중 오류가 발생했습니다.');
+        }
+    };
+
     return (
-        <div className="animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-500" ref={scorecardRef}>
             <div className={`flex items-center justify-between mb-4 ${isSmartphoneMode ? 'px-4' : ''}`}>
                 <div className="flex items-center gap-2">
                     <button onClick={onBack} className="p-2 bg-white rounded-xl border border-slate-100 text-slate-400 hover:text-emerald-600 transition-all shadow-sm">
                         <ArrowLeft size={18} />
                     </button>
                     <div className="flex items-center gap-2.5">
-                        {scoreData.courseImageUrl && (
-                            <div
-                                onClick={() => onShowImage(scoreData.courseImageUrl!)}
-                                className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 flex-shrink-0 cursor-pointer hover:border-emerald-400 transition-all active:scale-95 shadow-sm"
-                            >
-                                <img src={scoreData.courseImageUrl} alt="" className="w-full h-full object-cover" />
-                            </div>
-                        )}
                         <div>
                             <h2 className="text-lg font-black text-slate-800 tracking-tight leading-none mb-0.5">{scoreData.courseName}</h2>
                             <p className="text-[10px] text-slate-400 font-bold">{scoreData.date}</p>
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
-                    title="중간 저장"
-                >
-                    <Save size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleDownloadPDF}
+                        className="p-2.5 bg-slate-100 text-slate-600 hover:text-slate-900 rounded-xl transition-all shadow-sm"
+                        title="PDF로 결과 저장"
+                    >
+                        <FileDown size={20} />
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
+                        title="중간 저장"
+                    >
+                        <Save size={20} />
+                    </button>
+                </div>
             </div>
 
             <div className={`bg-white border-slate-200 overflow-hidden ${isSmartphoneMode ? 'rounded-none border-x-0' : 'rounded-[2.5rem] border shadow-xl'}`}>
@@ -615,8 +772,34 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, onBack, isSmar
                                                     >
                                                         <PlusCircle size={14} />
                                                     </button>
-                                                    <div className="w-8 h-8 flex items-center justify-center rounded-lg font-mono text-sm font-black transition-all bg-white border-2 border-emerald-500 text-emerald-600 shadow-sm">
-                                                        {currentScore === 0 ? scoreData.holePars[hIdx] : currentScore}
+                                                    <div className="relative w-8 h-8 flex items-center justify-center rounded-lg font-mono text-sm font-black transition-all bg-white overflow-visible">
+                                                        {(() => {
+                                                            const par = scoreData.holePars[hIdx];
+                                                            const score = currentScore === 0 ? par : currentScore;
+                                                            const diff = score - par;
+
+                                                            if (diff === 0) return <span className="text-slate-700">{score}</span>;
+                                                            if (diff > 0) return <span className="text-blue-500">{score}</span>;
+
+                                                            // Under Par Symbols (Red)
+                                                            return (
+                                                                <div className="relative w-full h-full flex items-center justify-center text-red-500">
+                                                                    <span className="relative z-10">{score}</span>
+                                                                    {diff === -1 && (
+                                                                        <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-110" />
+                                                                    )}
+                                                                    {diff === -2 && (
+                                                                        <div className="absolute inset-0.5 border-[1.5px] border-red-500 rounded-none scale-110" />
+                                                                    )}
+                                                                    {diff === -3 && (
+                                                                        <>
+                                                                            <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-110" />
+                                                                            <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-125" />
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                     <button
                                                         onClick={() => handleScoreChange(pIdx, hIdx, -1)}

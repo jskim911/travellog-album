@@ -242,7 +242,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className={`w-full ${isSmartphoneMode ? 'px-0 pt-4' : 'px-6 lg:px-8 pt-6'}`}>
+      <main className={`w-full ${isSmartphoneMode ? 'px-5 pt-4' : 'px-6 lg:px-8 pt-6'}`}>
         {user && userStatus === 'pending' && (
           <div className="max-w-4xl mx-auto mb-8 p-8 bg-white border border-yellow-200 rounded-[2rem] text-center shadow-xl shadow-yellow-50/50">
             <h3 className="text-xl font-black text-slate-900 mb-2">승인 대기 중입니다 ⏳</h3>

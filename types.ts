@@ -178,4 +178,5 @@ export interface GolfScore {
   createdAt: any;
   date: string;
   courseImageUrl?: string;
+  holeInfoUrls?: string[];
 }
