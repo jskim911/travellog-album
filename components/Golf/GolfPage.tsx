@@ -634,6 +634,64 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, globalHoleInfo
     const [isSaving, setIsSaving] = useState(false);
     const scorecardRef = useRef<HTMLDivElement>(null);
 
+    const handleRemovePlayer = async (pIdx: number) => {
+        if (!window.confirm(`${scoreData.participants[pIdx]}님의 기록을 삭제하시겠습니까?`)) return;
+
+        const newParticipants = [...scoreData.participants];
+        newParticipants.splice(pIdx, 1);
+
+        const shiftedScores: { [key: number]: number[] } = {};
+        let newIdx = 0;
+        for (let i = 0; i < scoreData.participants.length; i++) {
+            if (i !== pIdx) {
+                shiftedScores[newIdx] = localScores[i];
+                newIdx++;
+            }
+        }
+
+        try {
+            await updateDoc(doc(db, 'golfScores', scoreData.id), {
+                participants: newParticipants,
+                scores: shiftedScores
+            });
+            alert('플레이어가 삭제되었습니다.');
+            onBack();
+        } catch (error) {
+            console.error('Delete player error:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleAddPlayer = async () => {
+        if (scoreData.participants.length >= 8) {
+            alert('최대 8명까지만 추가할 수 있습니다.');
+            return;
+        }
+
+        const playerName = window.prompt('추가할 플레이어의 이름을 입력하세요:');
+        if (!playerName || !playerName.trim()) return;
+
+        const newParticipants = [...scoreData.participants, playerName.trim()];
+        const newScoreIdx = Object.keys(localScores).length;
+
+        const newScores = {
+            ...localScores,
+            [newScoreIdx]: [...scoreData.holePars]
+        };
+
+        try {
+            await updateDoc(doc(db, 'golfScores', scoreData.id), {
+                participants: newParticipants,
+                scores: newScores
+            });
+            alert('플레이어가 추가되었습니다.');
+            onBack();
+        } catch (error) {
+            console.error('Add player error:', error);
+            alert('추가 중 오류가 발생했습니다.');
+        }
+    };
+
     const handleScoreChange = (playerIdx: number, holeIdx: number, delta: number) => {
         const currentVal = localScores[playerIdx][holeIdx];
         // 아직 입력되지 않은(0) 상태라면 해당 홀의 파(Par) 값을 기준으로 증감
@@ -756,9 +814,18 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, globalHoleInfo
                             {scoreData.participants.map((player, pIdx) => (
                                 <tr key={player} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                     <td className="sticky left-0 z-20 bg-white px-3 py-3 text-xs font-black text-slate-800 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
-                                        <div className="flex flex-col">
-                                            <span className="truncate">{player}</span>
-                                            <span className="text-[9px] text-slate-400 font-bold">P{pIdx + 1}</span>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="truncate">{player}</span>
+                                                <span className="text-[9px] text-slate-400 font-bold leading-none mt-0.5">P{pIdx + 1}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemovePlayer(pIdx)}
+                                                className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
+                                                title="플레이어 삭제"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
                                         </div>
                                     </td>
                                     {scoreData.holePars.map((_, hIdx) => {
@@ -778,25 +845,22 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, globalHoleInfo
                                                             const score = currentScore === 0 ? par : currentScore;
                                                             const diff = score - par;
 
-                                                            if (diff === 0) return <span className="text-slate-700">{score}</span>;
-                                                            if (diff > 0) return <span className="text-blue-500">{score}</span>;
+                                                            if (diff === 0) return <span className="text-slate-700 font-black">{score}</span>;
+                                                            if (diff > 0) return <span className="text-blue-500 font-black">{score}</span>;
 
-                                                            // Under Par Symbols (Red)
                                                             return (
-                                                                <div className="relative w-full h-full flex items-center justify-center text-red-500">
+                                                                <div className="relative w-full h-full flex items-center justify-center text-red-500 font-black">
                                                                     <span className="relative z-10">{score}</span>
                                                                     {diff === -1 && (
-                                                                        <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-110" />
+                                                                        <div className="absolute inset-0 border-[2px] border-red-500 rounded-full scale-[1.15]" />
                                                                     )}
                                                                     {diff === -2 && (
-                                                                        <div className="absolute inset-0.5 border-[1.5px] border-red-500 rounded-none scale-110" />
-                                                                    )}
-                                                                    {diff === -3 && (
                                                                         <>
-                                                                            <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-110" />
-                                                                            <div className="absolute inset-0 border-[1.5px] border-red-500 rounded-full scale-125" />
+                                                                            <div className="absolute inset-0 border-[2px] border-red-500 rounded-full scale-[1.10]" />
+                                                                            <div className="absolute inset-0 border-[2px] border-red-500 rounded-full scale-[1.30]" />
                                                                         </>
                                                                     )}
+                                                                    {diff <= -3 && null}
                                                                 </div>
                                                             );
                                                         })()}
@@ -821,6 +885,21 @@ const ScorecardView: React.FC<ScorecardViewProps> = ({ scoreData, globalHoleInfo
                                     </td>
                                 </tr>
                             ))}
+                            {scoreData.participants.length < 8 && (
+                                <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                    <td className="sticky left-0 z-20 bg-white px-3 py-3 text-xs font-black text-slate-800 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                                        <button onClick={handleAddPlayer} className="flex items-center justify-center gap-2 w-full py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors" title="플레이어 추가">
+                                            <Plus size={14} />
+                                            <span>추가</span>
+                                        </button>
+                                    </td>
+                                    {scoreData.holePars.map((_, hIdx) => (
+                                        <td key={hIdx} className="px-0.5 py-1.5 border-r border-slate-100/30"></td>
+                                    ))}
+                                    <td className="bg-emerald-50/30"></td>
+                                    <td className="bg-emerald-50/50 border-l border-emerald-100"></td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

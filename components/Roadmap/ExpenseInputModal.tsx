@@ -48,7 +48,7 @@ export const ExpenseInputModal: React.FC<ExpenseInputModalProps> = ({ isOpen, on
             setAmount('');
             setExchangeRate('1');
         }
-    }, [isOpen, expenseToEdit, currency]);
+    }, [isOpen, expenseToEdit]);
 
     const calculateConvertedAmount = () => {
         const a = parseFloat(amount.replace(/,/g, '') || '0');
